@@ -1,0 +1,17 @@
+# Local credentials and environment files
+.env
+.env.*
+.envrc
+*.key
+*.pem
+credentials*
+secrets*
+.aws/
+.ssh/
+# Python-generated and local files
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
