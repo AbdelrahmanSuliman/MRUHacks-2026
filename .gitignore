@@ -1,0 +1,28 @@
+# Unity-root policy. If Unity lives in a subdirectory, move these rules there.
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uild/
+/[Bb]uilds/
+
+# Generated IDE files, Android outputs, and local caches at the Unity root.
+/*.csproj
+/*.sln
+/*.slnx
+/*.unityproj
+/*.suo
+/*.user
+/*.apk
+/*.aab
+/.vs/
+/.gradle/
+.DS_Store
+
+# Targeted local credentials; these basename rules apply at any depth.
+cycling-secrets.json
+.env
+.env.local
+*.keystore
+*.jks
