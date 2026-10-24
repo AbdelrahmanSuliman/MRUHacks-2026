@@ -1,0 +1,12 @@
+# ninja log v5
+264	2105	8145830491188281	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	7363efe72b8b2835
+2109	3616	8145830506840370	C:/Users/abdel/Desktop/mru_hacks/CalgaryCycling/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/3zr22n42/obj/arm64-v8a/libswappywrapper.so	ef1b87dac99e0480
+210	4668	8145830518288260	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	5a6f6f59acb63156
+111	4741	8145830519255040	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	c4632b0d71a3919d
+2	4774	8145830519543666	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	22483edfb5eb451c
+165	4781	8145830519674767	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	ba6416db82090ed2
+79	4836	8145830520233816	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	cf9b41c564e80fdd
+234	5162	8145830523438305	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ab24b7c012868e62
+137	5277	8145830524654439	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	a1ea3c1f806e8346
+27	5456	8145830526308896	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	de880adcaeee8b9e
+5456	5713	8145830528911327	C:/Users/abdel/Desktop/mru_hacks/CalgaryCycling/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/3zr22n42/obj/arm64-v8a/libgame.so	ff113295a98d73cf
