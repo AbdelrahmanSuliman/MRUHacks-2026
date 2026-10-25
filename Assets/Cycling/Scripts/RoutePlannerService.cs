@@ -95,7 +95,8 @@ namespace CalgaryCycling
             StartCoroutine(Get("https://api.openrouteservice.org/geocode/search?size=5&boundary.country=CA"+
                 "&boundary.rect.min_lon=-114.35&boundary.rect.max_lon=-113.80"+
                 "&boundary.rect.min_lat=50.80&boundary.rect.max_lat=51.25"+
-                "&text="+UnityWebRequest.EscapeURL(address+", Calgary, Alberta"),
+                "&text="+UnityWebRequest.EscapeURL(address+", Calgary, Alberta")+
+                "&api_key="+UnityWebRequest.EscapeURL(apiKey),
                 body=>ParsePlaces(body),"Address search failed."));
         }
         public void BicycleRoute(Place start, Place end)
@@ -118,7 +119,19 @@ namespace CalgaryCycling
                 request.SetRequestHeader("Authorization",apiKey);
                 request.SetRequestHeader("Accept","application/json");
                 yield return request.SendWebRequest();
-                if(request.result!=UnityWebRequest.Result.Success){Fail(failure+" HTTP "+request.responseCode);yield break;}
+                if(request.result!=UnityWebRequest.Result.Success)
+                {
+                    string detail=request.responseCode>0?" HTTP "+request.responseCode:" ("+request.error+")";
+                    string response=request.downloadHandler == null ? null : request.downloadHandler.text;
+                    if(!string.IsNullOrWhiteSpace(response))
+                    {
+                        response=response.Replace("\r"," ").Replace("\n"," ");
+                        if(response.Length>180)response=response.Substring(0,180);
+                        detail+=": "+response;
+                    }
+                    Fail(failure+detail);
+                    yield break;
+                }
                 if(success==null){Fail(failure+" Internal response handler was missing.");yield break;}
                 if(request.downloadHandler==null || string.IsNullOrWhiteSpace(request.downloadHandler.text)){Fail(failure+" Empty server response.");yield break;}
                 try{success(request.downloadHandler.text);}
