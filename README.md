@@ -1,5 +1,7 @@
 # Calgary Cycling Simulator — source project and assembly guide
 
+**Note: This "main_" branch is where our code is working out of, not "main".**
+
 ## 1. Exact dependency baseline
 
 Start here. These are deliberately pinned versions, not a claim that they are the newest releases.
