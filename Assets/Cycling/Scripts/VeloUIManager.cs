@@ -13,20 +13,36 @@ namespace CalgaryCycling
     {
         RideApp app; Canvas canvas; GraphicRaycaster raycaster; RectTransform root; Font font; Text title, subtitle, hud; RoutePlannerUI addressPlanner;
         GameObject menu, routes, pause, summary, settings; Button start, resume, plan;
-        bool hudVisible=true; float rideSeconds;
+        bool hudVisible=true; float rideSeconds, lastDistance; RideState previousState=RideState.Menu;
         readonly List<RaycastResult> hits=new List<RaycastResult>(); PointerEventData pointer; GameObject hovered;
         readonly Color charcoal=new Color(.018f,.035f,.045f), cyan=new Color(.08f,.75f,.82f), green=new Color(.2f,.9f,.55f), muted=new Color(.55f,.68f,.72f);
         public void Initialize(RideApp owner)
         {
             app=owner;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var es=new GameObject("Velo UI Event System",typeof(EventSystem),typeof(InputSystemUIInputModule));es.transform.SetParent(transform,false);es.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();pointer=new PointerEventData(es.GetComponent<EventSystem>());
+            // Cesium may already have created the shared EventSystem for credits.
+            var eventSystem=EventSystem.current;
+            if(eventSystem==null)
+                eventSystem=FindFirstObjectByType<EventSystem>();
+            if(eventSystem==null)
+            {
+                var es=new GameObject("Velo UI Event System",typeof(EventSystem));
+                es.transform.SetParent(transform,false);
+                eventSystem=es.GetComponent<EventSystem>();
+            }
+            var module=eventSystem.GetComponent<InputSystemUIInputModule>();
+            if(module==null && eventSystem.GetComponent<BaseInputModule>()==null)
+            {
+                module=eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                module.AssignDefaultActions();
+            }
+            pointer=new PointerEventData(eventSystem);
             var go=new GameObject("VELO VR Dashboard",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));go.transform.SetParent(app.Motor.transform,false);
             canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=app.Rig.View;raycaster=go.GetComponent<GraphicRaycaster>();var scaler=go.GetComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=16f;scaler.referencePixelsPerUnit=100f;root=(RectTransform)go.transform;root.sizeDelta=new Vector2(1200,800);root.localScale=Vector3.one*.0022f;root.localPosition=new Vector3(0,app.Settings.eyeHeight+.05f,3.4f);
             addressPlanner=app.GetComponent<RoutePlannerUI>();menu=Panel("Main Menu");routes=Panel("Route Selection");pause=Panel("Pause");summary=Panel("Ride Summary");settings=Panel("Settings");
             BuildMenu();BuildRoutes();BuildPause();BuildSummary();BuildSettings();hud=Label(root,"",new Vector2(0,320),new Vector2(1100,85),28,Color.white);Show(menu);
         }
         GameObject Panel(string name){var p=new GameObject(name,typeof(RectTransform),typeof(Image));p.transform.SetParent(root,false);var r=(RectTransform)p.transform;r.sizeDelta=root.sizeDelta;p.GetComponent<Image>().color=charcoal;return p;}
-        Text Label(Transform p,string value,Vector2 pos,Vector2 size,int fs,Color color){var g=new GameObject("Text",typeof(RectTransform),typeof(Text));g.transform.SetParent(p,false);var r=(RectTransform)g.transform;r.anchoredPosition=pos;r.sizeDelta=size;var t=g.GetComponent<Text>();t.font=font;t.text=value;t.fontSize=Mathf.RoundToInt(fs*1.35f);t.fontStyle=FontStyle.Bold;t.color=color;t.alignment=TextAnchor.MiddleCenter;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;return t;}
+        Text Label(Transform p,string value,Vector2 pos,Vector2 size,int fs,Color color){var g=new GameObject("Text",typeof(RectTransform),typeof(Text));g.transform.SetParent(p,false);var r=(RectTransform)g.transform;r.anchoredPosition=pos;r.sizeDelta=size;var t=g.GetComponent<Text>();t.font=font;t.text=value;t.fontSize=Mathf.RoundToInt(fs*1.35f);t.fontStyle=FontStyle.Bold;t.color=color;t.alignment=TextAnchor.MiddleCenter;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;t.raycastTarget=false;return t;}
         Button Button(Transform p,string text,Vector2 pos,Action action,bool accent=false){var g=new GameObject(text,typeof(RectTransform),typeof(Image),typeof(Button));g.transform.SetParent(p,false);var r=(RectTransform)g.transform;r.anchoredPosition=pos;r.sizeDelta=new Vector2(430,70);var b=g.GetComponent<Button>();g.GetComponent<Image>().color=accent?cyan:new Color(.08f,.16f,.18f);b.onClick.AddListener(()=>action());Label(g.transform,text,Vector2.zero,r.sizeDelta,24,accent?Color.black:Color.white);return b;}
         void Header(GameObject p,string text,string sub){Label(p.transform,text,new Vector2(0,325),new Vector2(1100,70),40,cyan);Label(p.transform,sub,new Vector2(0,270),new Vector2(1050,45),20,muted);}
         void BuildMenu(){Header(menu,"VELO VR  /  RIDE","Virtual cycling experience  •  Calgary\nReady when you are");start=Button(menu.transform,"START RIDE",new Vector2(0,150),()=>app.StartRide(),true);plan=Button(menu.transform,"SELECT ROUTE",new Vector2(0,65),()=>addressPlanner?.Show());Button(menu.transform,"TRAINING",new Vector2(0,-20),()=>Show(routes));Button(menu.transform,"SETTINGS",new Vector2(0,-105),()=>Show(settings));Button(menu.transform,"EXIT",new Vector2(0,-190),()=>app.Quit());Label(menu.transform,"LAST RIDE\n5.0 km   •   18 min   •   16.7 km/h\nTOTAL  42.8 km     PERSONAL BEST  14.2 km/h",new Vector2(0,-300),new Vector2(1000,110),22,muted);}
@@ -36,7 +52,66 @@ namespace CalgaryCycling
         void BuildSummary(){Header(summary,"RIDE COMPLETE","Strong work. Your session is saved as mock telemetry until sensors are connected.");Label(summary.transform,"TOTAL DISTANCE\n5.0 km\n\nDURATION     AVG SPEED     CALORIES\n18:00          16.7 km/h       240 kcal",new Vector2(0,75),new Vector2(900,250),30,Color.white);Button(summary.transform,"RIDE AGAIN",new Vector2(-220,-220),()=>{app.Restart();app.Resume();});Button(summary.transform,"MAIN MENU",new Vector2(220,-220),()=>{app.Menu();Show(menu);});}
         void BuildSettings(){Header(settings,"SETTINGS","Comfort first. Changes apply immediately to this session.");Button(settings.transform,"HUD: ON / OFF",new Vector2(0,150),()=>{hudVisible=!hudVisible;hud.gameObject.SetActive(hudVisible);});Button(settings.transform,"UI SCALE",new Vector2(0,65),()=>{root.localScale=Vector3.one*(root.localScale.x>.0022f?.0019f:.0025f);});Button(settings.transform,"COMFORT MODE",new Vector2(0,-20),()=>app.SetMessage("Comfort mode enabled: gentle acceleration and no forced camera rotation."));Button(settings.transform,"BACK",new Vector2(0,-150),()=>Show(app.State==RideState.Paused?pause:menu));}
         void Show(GameObject page){menu.SetActive(page==menu);routes.SetActive(page==routes);pause.SetActive(page==pause);summary.SetActive(page==summary);settings.SetActive(page==settings);}
-        void Update(){if(app==null)return;canvas.transform.localPosition=new Vector3(0,app.Settings.eyeHeight+.05f,3.4f);bool riding=app.State==RideState.Riding;canvas.gameObject.SetActive(true);if(riding){rideSeconds+=Time.deltaTime;menu.SetActive(false);routes.SetActive(false);pause.SetActive(false);summary.SetActive(false);settings.SetActive(false);hud.text=$"{app.Motor.Speed*3.6f:F1} KM/H     {app.Motor.Distance/1000f:F2} KM     {rideSeconds/60f:F0}:{rideSeconds%60f:00}     CADENCE  72 RPM     240 KCAL";hud.gameObject.SetActive(hudVisible);}else{hud.gameObject.SetActive(false);if(app.State==RideState.Paused)Show(pause);if(app.State==RideState.Finished)Show(summary);start.interactable=(app.Scenery.Ready||app.Scenery.Failed)&&app.State==RideState.Menu;resume.interactable=(app.Scenery.Ready||app.Scenery.Failed)&&app.State==RideState.Paused;}if(!riding&&app.Rig.IsVR)HandleGazeSelection();}
-        void HandleGazeSelection(){var camera=app.Rig.View;pointer.position=camera.WorldToScreenPoint(camera.transform.position+camera.transform.forward*3f);hits.Clear();raycaster.Raycast(pointer,hits);GameObject target=null;foreach(var hit in hits){var b=hit.gameObject.GetComponentInParent<Button>();var field=hit.gameObject.GetComponentInParent<InputField>();if((b!=null&&b.IsInteractable())||(field!=null&&field.interactable)){target=hit.gameObject;break;}}if(target!=hovered){if(hovered!=null)ExecuteEvents.Execute(hovered,pointer,ExecuteEvents.pointerExitHandler);hovered=target;if(hovered!=null)ExecuteEvents.Execute(hovered,pointer,ExecuteEvents.pointerEnterHandler);}if(target!=null&&app.Input.Select){ExecuteEvents.Execute(target,pointer,ExecuteEvents.pointerClickHandler);var field=target.GetComponentInParent<InputField>();if(field!=null){field.Select();field.ActivateInputField();}}}
+        void Update()
+        {
+            if(app==null)return;
+            bool riding=app.State==RideState.Riding;
+            if(app.Motor.Distance<lastDistance || (riding && previousState==RideState.Menu))rideSeconds=0;
+            lastDistance=app.Motor.Distance;
+            previousState=app.State;
+            canvas.transform.localPosition=new Vector3(0,app.Settings.eyeHeight+.05f,3.4f);
+            canvas.gameObject.SetActive(true);
+            if(riding)
+            {
+                rideSeconds+=Time.deltaTime;
+                Show(null);
+                float remaining=Mathf.Max(0f,app.Motor.Route.Length-app.Motor.Distance);
+                string remainingLabel=remaining<1000f?$"{remaining:F0} m":$"{remaining/1000f:F2} km";
+                hud.text=$"{remainingLabel} remaining   |   {app.Motor.Speed*3.6f:F1} km/h\n{app.Motor.Distance/1000f:F2} km ridden   |   {(int)rideSeconds/60}:{(int)rideSeconds%60:00}";
+                hud.gameObject.SetActive(hudVisible);
+            }
+            else
+            {
+                hud.gameObject.SetActive(false);
+                if(app.State==RideState.Paused)Show(pause);
+                if(app.State==RideState.Finished)Show(summary);
+                start.interactable=(app.Scenery.Ready||app.Scenery.Failed)&&app.State==RideState.Menu;
+                resume.interactable=(app.Scenery.Ready||app.Scenery.Failed)&&app.State==RideState.Paused;
+            }
+            if(addressPlanner!=null && addressPlanner.IsOpen)
+                Show(null);
+            else if(app.State==RideState.Menu && !menu.activeSelf && !routes.activeSelf && !settings.activeSelf)
+                Show(menu);
+            if(!riding&&app.Rig.IsVR)HandleGazeSelection();
+        }
+
+        void HandleGazeSelection()
+        {
+            var camera=app.Rig.View;
+            pointer.position=camera.WorldToScreenPoint(camera.transform.position+camera.transform.forward*3f);
+            hits.Clear();
+            var activeRaycaster=addressPlanner!=null && addressPlanner.IsOpen?addressPlanner.Raycaster:raycaster;
+            activeRaycaster.Raycast(pointer,hits);
+            GameObject target=null;
+            foreach(var hit in hits)
+            {
+                var button=hit.gameObject.GetComponentInParent<Button>();
+                var field=hit.gameObject.GetComponentInParent<InputField>();
+                if(button!=null && button.IsInteractable()) { target=button.gameObject;break; }
+                if(field!=null && field.interactable) { target=field.gameObject;break; }
+            }
+            if(target!=hovered)
+            {
+                if(hovered!=null)ExecuteEvents.Execute(hovered,pointer,ExecuteEvents.pointerExitHandler);
+                hovered=target;
+                if(hovered!=null)ExecuteEvents.Execute(hovered,pointer,ExecuteEvents.pointerEnterHandler);
+            }
+            if(target!=null&&app.Input.Select)
+            {
+                ExecuteEvents.Execute(target,pointer,ExecuteEvents.pointerClickHandler);
+                var field=target.GetComponent<InputField>();
+                if(field!=null) { field.Select();field.ActivateInputField(); }
+            }
+        }
     }
 }
