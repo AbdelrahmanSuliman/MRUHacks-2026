@@ -133,20 +133,13 @@ namespace CalgaryCycling
             if(device.isValid)
             {
                 bool isTracked;
-                float squeeze;
-                bool holding;
                 bool valid=device.TryGetFeatureValue(XRCommonUsages.isTracked,out isTracked) && isTracked;
-                bool gripping=(device.TryGetFeatureValue(XRCommonUsages.grip,out squeeze) && squeeze>.55f) ||
-                    (device.TryGetFeatureValue(XRCommonUsages.gripButton,out holding) && holding);
                 bool hasPosition=device.TryGetFeatureValue(XRCommonUsages.devicePosition,out point);
-                if(valid && gripping && hasPosition)return true;
+                if(valid && hasPosition)return true;
             }
             point=controller==null?Vector3.zero:controller.devicePosition.ReadValue();
             if(controller==null || !controller.isTracked.isPressed)return false;
-            var grip=controller.TryGetChildControl<AxisControl>("grip");
-            var gripButton=controller.TryGetChildControl<ButtonControl>("gripPressed") ??
-                controller.TryGetChildControl<ButtonControl>("gripButton");
-            return (grip!=null && grip.ReadValue()>.55f) || (gripButton!=null && gripButton.isPressed);
+            return true;
         }
 
         static float ApplyDeadZone(float value,float deadZone)

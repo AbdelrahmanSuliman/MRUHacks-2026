@@ -2,15 +2,15 @@
 
 ## Quest controls
 
-Hold a controller in each hand like bicycle grips. Hold both side grip buttons
-with your hands facing straight ahead to centre the handlebars. Turn the pair
+Hold a controller in each hand like bicycle grips. With both controllers tracked
+and your hands facing straight ahead, the handlebars centre automatically. Turn the pair
 horizontally: move the left hand forward and right hand back to steer right;
 reverse to steer left. Hand height, wrist pitch and wrist roll are ignored.
 
-Release either grip to disengage. Hold both again to centre at your current hand
-position. Starting or resuming a ride resets calibration. Settings also includes
-**Centre Handlebars**. The selected thumbstick's horizontal axis remains available
-as a fallback. Vertical thumbstick movement has no steering effect.
+Losing either controller's tracking disengages the gesture. Starting or resuming a
+ride resets calibration. The selected thumbstick's horizontal axis remains
+available as a fallback when both controllers are unavailable. Vertical thumbstick
+movement has no steering effect.
 
 - A or right trigger: select the button you are looking at.
 - X: pause/resume.
@@ -36,9 +36,9 @@ Run **Calgary Cycling > Validation > Check Ride Product** (Ctrl+Shift+F9).
 The report is written to `Temp/CyclingProductChecks.txt`.
 
 This exercises actual imported prefabs on a tight return-bend route in all three
-zones, replays tracked controller positions and grips through `RideInput`, and
+zones, replays tracked controller positions through `RideInput`, and
 runs the existing motor and route checks. It verifies left/right steering,
-vertical-motion rejection, grip release, regripping, tracking loss, horizontal
+vertical-motion rejection, centred hand positions, tracking loss, horizontal
 thumbstick fallback, route preservation, acceleration, corridor limits and arrival.
 A GeoJSON regression also checks that address names remain paired with the
 coordinates from their own feature, independent of JSON property order.

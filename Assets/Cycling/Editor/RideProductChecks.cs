@@ -172,14 +172,16 @@ namespace CalgaryCycling.Editor
                     input.Tick(); Require(input.Steering(.15f)<-.35f,"Turning handlebars left does not steer left.");
                     Pose(left,new Vector3(-.3f,1,.4f),Quaternion.identity,false);
                     Pose(right,new Vector3(.3f,1,.4f),Quaternion.identity,false);
-                    input.Tick(); Require(Mathf.Abs(input.Steering(.15f))<.01f,"Releasing grips leaves steering active.");
+                    input.Tick(); Require(Mathf.Abs(input.Steering(.15f))<.01f,"Centered controllers leave steering active.");
+                    SetTracked(left,false);
+                    SetTracked(right,false);
                     InputSystem.QueueDeltaStateEvent(left.GetChildControl<Vector2Control>("thumbstick"),new Vector2(0,1));
                     InputSystem.Update();input.Tick();Require(Mathf.Abs(input.Steering(.15f))<.01f,"Thumbstick up/down steers the bike.");
                     InputSystem.QueueDeltaStateEvent(left.GetChildControl<Vector2Control>("thumbstick"),new Vector2(.8f,0));
                     InputSystem.Update();input.Tick();Require(input.Steering(.15f)>.5f,"Left/right thumbstick fallback is unavailable.");
                     InputSystem.QueueDeltaStateEvent(left.GetChildControl<Vector2Control>("thumbstick"),Vector2.zero);
-                    Pose(left,new Vector3(-.3f,1,.4f),Quaternion.identity,true);
-                    Pose(right,new Vector3(.3f,1,.4f),Quaternion.identity,true);
+                    Pose(left,new Vector3(-.3f,1,.4f),Quaternion.identity,false);
+                    Pose(right,new Vector3(.3f,1,.4f),Quaternion.identity,false);
                     input.Tick();Require(Mathf.Abs(input.Steering(.15f))<.01f,"Regripping fails to centre steering.");
                     using(StateEvent.From(left,out var trackingEvent))
                     {
@@ -200,6 +202,15 @@ namespace CalgaryCycling.Editor
                 device.deviceRotation.WriteValueIntoEvent(rotation,eventPtr);
                 device.isTracked.WriteValueIntoEvent(1f,eventPtr);
                 device.GetChildControl<AxisControl>("grip").WriteValueIntoEvent(gripping?1f:0f,eventPtr);
+                InputSystem.QueueEvent(eventPtr);
+            }
+            InputSystem.Update();
+        }
+        static void SetTracked(XRController device,bool tracked)
+        {
+            using(StateEvent.From(device,out var eventPtr))
+            {
+                device.isTracked.WriteValueIntoEvent(tracked?1f:0f,eventPtr);
                 InputSystem.QueueEvent(eventPtr);
             }
             InputSystem.Update();

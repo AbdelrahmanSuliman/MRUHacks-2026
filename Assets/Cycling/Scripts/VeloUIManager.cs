@@ -177,7 +177,7 @@ namespace CalgaryCycling
             });
             MakeButton(menu.transform, "SETTINGS", new Vector2(-165, -140), new Vector2(290, 66), () => Show(settings));
             retry = MakeButton(menu.transform, "RETRY SCENERY", new Vector2(165, -140), new Vector2(290, 66), () => app.Retry());
-            Label(menu.transform, "LOOK at a button, then press A or the right trigger.\nWhile riding: hold both grips to steer   |   X: pause   |   B: menu",
+            Label(menu.transform, "LOOK at a button, then press A or the right trigger.\nWhile riding: hold both controllers like handlebars   |   X: pause   |   B: menu",
                 new Vector2(0, -248), new Vector2(980, 62), 20, muted);
         }
 
@@ -300,7 +300,7 @@ namespace CalgaryCycling
                 $"{app.Motor.Distance/1000f:F2} / {app.Motor.Route.Length/1000f:F2} km    |    " +
                 $"{app.Motor.Progress:P0}";
             controlsHint.text=app.Rig.IsVR
-                ? (app.Input.HandlebarActive?"HANDLEBARS CONNECTED   |   X: pause":"Hold both grip buttons to steer   |   X: pause")
+                ? (app.Input.HandlebarActive?"HANDLEBARS CONNECTED   |   X: pause":"Move both controllers like handlebars   |   X: pause")
                 : "A / D: steer left and right   |   SPACE: pause";
             hud.gameObject.SetActive(riding && hudVisible);
             controlsHint.gameObject.SetActive(riding && hudVisible);
