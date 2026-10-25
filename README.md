@@ -22,7 +22,7 @@ Start here. These are deliberately pinned versions, not a claim that they are th
 
 `Packages/manifest.json` includes these dependencies and Cesium's scoped registry. Other dependencies resolve through Unity. Commit Unity's resulting `packages-lock.json` after successful resolution; none is fabricated in this archive. Android SDK, NDK and OpenJDK must be the modules installed for this editor by Unity Hub, not independently chosen versions.
 
-This is a source implementation and scene generator, **not a verified or headset-certified build**. C# syntax was parsed here, and key Cesium 1.18.1, Input System 1.11.2 and XR Core Utilities 2.3.0 APIs were inspected in source. No Unity editor, C# compiler, Cesium ion token or Quest device was available for an end-to-end test. Resolve packages, compile, run the included checks, and perform the device checklist before presenting. Package metadata compatibility is not equivalent to a tested full-stack combination.
+This is a source implementation and scene generator that has been successfully tested on a Meta Quest 2. It is not a headset-certified build. C# syntax was parsed, and key Cesium 1.18.1, Input System 1.11.2 and XR Core Utilities 2.3.0 APIs were inspected in source. Resolve packages, compile, run the included checks, and perform the device checklist before presenting. Package metadata compatibility is not equivalent to a tested full-stack combination.
 
 The documented assembly path is Windows or macOS. Meta Core 77 has a reported Linux editor configuration issue; this project has not been imported or run in Unity on Linux. For a Quest on a Linux laptop, the reliable Linux-side option is to install and launch the Android APK on the headset with ADB; the headset renders the experience itself. This is not laptop-rendered PCVR. Running PCVR from Linux additionally requires a Linux-compatible Unity Editor and OpenXR runtime/headset setup, which is not validated for this project. Quest Link PCVR is not the same as installing the standalone APK.
 
@@ -107,7 +107,7 @@ The route supplies centreline position C(s), forward tangent T(s), and right vec
 
 `P = C(s) + lateralOffset * R(s)`
 
-Forward progress increases automatically. A smoothed stick value determines a small heading offset; its sine changes lateral position and its cosine advances route distance. Outward lateral speed fades near the corridor boundary. Releasing the stick holds the lateral position. Opposite input moves back across the corridor. This is constrained route steering, not free-roaming rigidbody bicycle simulation.
+Forward progress increases automatically. In VR, steering uses a handlebar-like gesture: pull one hand/controller back while pushing the other forward to turn in that direction. The smoothed difference between the two controller positions determines a small heading offset; its sine changes lateral position and its cosine advances route distance. Outward lateral speed fades near the corridor boundary. Returning both hands to a neutral position holds the lateral position. This is constrained route steering, not free-roaming rigidbody bicycle simulation.
 
 Both the bicycle and XR origin inherit this actual position. Since the bicycle is under the georeference, a lateral change corresponds to a change in geographic location. Steering is not only visual. Yaw follows the direction of displacement with a rate limit, with zero artificial roll/pitch. Direction alignment can lag slightly to limit camera rotation. Use broad curves so that lag remains small.
 
@@ -118,7 +118,7 @@ Cruise acceleration and destination braking are bounded. Pause stops immediately
 | Action | Desktop | Quest Touch |
 |---|---|---|
 | Start ride | Click Start Ride | Look at Start Ride, press right trigger |
-| Steer | A / D or left / right arrows | Left thumbstick horizontal by default |
+| Steer | A / D or left / right arrows | Pull one hand/controller back and push the other forward, like steering bicycle handlebars |
 | Pause / resume | Space | X on left controller |
 | Restart, then wait for resume | R | Y on left controller |
 | Main menu | Escape | B on right controller |
@@ -128,7 +128,7 @@ Cruise acceleration and destination braking are bounded. Pause stops immediately
 | Speed / sensitivity | Click minus/plus | Gaze at minus/plus + trigger |
 | Quit | Quit button | Quit button or headset system menu |
 
-Set `Use Right Stick` on the settings asset if preferred. The control instructions say left stick is the default. Keyboard and Touch both feed `BicycleMotor.Tick`. Touch buttons use OpenXR primary/secondary controls, not reserved system buttons. This UI intentionally uses gaze targeting plus a physical controller trigger; it does not implement a tracked hand laser pointer. All settings use buttons so dragging a slider is unnecessary.
+Quest steering uses the relative movement of the two hands/controllers. Desktop keyboard input and the Quest handlebar gesture both feed `BicycleMotor.Tick`. Touch buttons use OpenXR primary/secondary controls, not reserved system buttons. This UI intentionally uses gaze targeting plus a physical controller trigger; it does not implement a tracked hand laser pointer. All settings use buttons so dragging a slider is unnecessary.
 
 In desktop mode the mouse controls the world-space menu through uGUI's Input System module. In VR, the camera centre ray targets uGUI buttons and the right trigger invokes their click events. A cyan dot identifies the gaze direction. Keep your head still briefly over the intended button. The menu is attached to the bicycle, not the headset, so you can look around normally.
 
@@ -215,7 +215,7 @@ If GPU time is too high, try screen-space error 32 or 48, render scale 0.75, a s
 
 Route sampling and deck generation happen at startup. Per-frame movement reuses route arrays; UI/streaming text updates are throttled. No scenery physics mesh generation or per-frame object spawning occurs. The credit RenderTexture consumes a few MiB plus UI resources. Check GC allocation in the real profiler; third-party packages may still allocate.
 
-Keep speed low for a first-time rider, let the judge sit, and explain that a button pauses movement immediately. Keep tracking active during pauses and loading. Do not add camera bob, roll, motion blur or camera smoothing that delays the headset pose. The avatar has no artificial pedaling mode. If performance cannot stay comfortable, use the working desktop demonstration while continuing device optimization; do not describe it as a validated standalone VR result.
+Keep speed low for a first-time rider, let the judge sit, and explain that a button pauses movement immediately. Keep tracking active during pauses and loading. Do not add camera bob, roll, motion blur or camera smoothing that delays the headset pose. The avatar has no artificial pedaling mode. If performance cannot stay comfortable, use the working desktop demonstration while continuing device optimization.
 
 ## 9. Troubleshooting
 
@@ -232,7 +232,7 @@ Keep speed low for a first-time rider, let the judge sit, and explain that a but
 | Route appears buried or floating | Ellipsoid-vs-sea-level height mismatch or estimated route. Correct settings using independent height/alignment data; do not use streamed mesh extraction. |
 | Pink procedural bicycle | URP assigned in Graphics and every Quality level? Unlit shader included in build? Re-run generator and inspect shader settings. |
 | Pink/black streamed tiles | Confirm Cesium URP material resources, URP/Shader Graph versions and graphics backend; isolate with a desktop frame capture. |
-| Controller steering missing | Android OpenXR loader, Oculus Touch profile, focus and left/right setting. Input Debugger should show thumbstick on a Touch device. |
+| Controller steering missing | Android OpenXR loader, Oculus Touch profile, focus and active controller tracking. Verify that pulling one hand/controller back while pushing the other forward produces the handlebar steering gesture. |
 | Keyboard missing | Click Game view; Active Input Handling must be Input System Package (New). |
 | Gaze cannot click | Use right trigger, not grip; controller must be tracked/active. Gaze target must be in the menu plane. Confirm only one EventSystem. |
 | Head tracking wrong/double | Only one Main Camera, one XROrigin and one TrackedPoseDriver. Remove other imported camera rigs. Recenter while seated. |
