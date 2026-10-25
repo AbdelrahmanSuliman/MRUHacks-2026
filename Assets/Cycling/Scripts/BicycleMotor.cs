@@ -16,7 +16,7 @@ namespace CalgaryCycling
         {
             Distance=LateralOffset=Speed=steer=steerVelocity=0;
             if(Route==null)return;
-            transform.localPosition=Route.Position(0);
+            transform.localPosition=Route.Position(0)+Vector3.up*settings.stylizedGroundOffset;
             transform.localRotation=Quaternion.LookRotation(Route.Forward(0),Vector3.up);
         }
         public void Stop() { Speed=0; steer=steerVelocity=0; }
@@ -39,13 +39,13 @@ namespace CalgaryCycling
             LateralOffset=Mathf.Clamp(LateralOffset+Speed*Mathf.Sin(angle)*dt*edge,
                 -settings.corridorHalfWidth,settings.corridorHalfWidth);
             Vector3 old=transform.localPosition;
-            Vector3 next=Route.Position(Distance,LateralOffset);
+            Vector3 next=Route.Position(Distance,LateralOffset)+Vector3.up*settings.stylizedGroundOffset;
             Vector3 motion=next-old;motion.y=0;
             transform.localPosition=next;
             if(motion.sqrMagnitude>.0000001f)
                 transform.localRotation=Quaternion.RotateTowards(transform.localRotation,
                     Quaternion.LookRotation(motion,Vector3.up),settings.maxYawDegreesPerSecond*dt);
-            if(Route.Length-Distance<.02f) { Distance=Route.Length;Speed=0;transform.localPosition=Route.Position(Distance,LateralOffset); }
+            if(Route.Length-Distance<.02f) { Distance=Route.Length;Speed=0;transform.localPosition=Route.Position(Distance,LateralOffset)+Vector3.up*settings.stylizedGroundOffset; }
         }
     }
 }

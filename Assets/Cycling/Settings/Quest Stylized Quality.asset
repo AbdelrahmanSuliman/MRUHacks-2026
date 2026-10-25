@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 346883aca14b89141b9c2fa427f7d511, type: 3}
+  m_Name: Quest Stylized Quality
+  m_EditorClassIdentifier: 
+  dressingStep: 16
+  routeMarkerStep: 24
+  nearFieldDistance: 180
+  treeCountLimit: 32
+  buildingCountLimit: 20
+  renderScale: 0.85
+  enableWater: 1
+  enableFlowers: 1

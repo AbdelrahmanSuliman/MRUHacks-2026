@@ -20,21 +20,24 @@ namespace CalgaryCycling
         public void Initialize(float eyeHeight)
         {
             height=eyeHeight;
-            origin=gameObject.AddComponent<XROrigin>();
             offset=new GameObject("Camera Offset").transform;offset.SetParent(transform,false);
             var cameraGO=new GameObject("Main Camera",typeof(Camera),typeof(AudioListener));
             cameraGO.tag="MainCamera";cameraGO.transform.SetParent(offset,false);
             View=cameraGO.GetComponent<Camera>();View.nearClipPlane=.08f;View.farClipPlane=1500;
-            View.clearFlags=CameraClearFlags.SolidColor;View.backgroundColor=new Color(.13f,.2f,.27f);
+            View.clearFlags=CameraClearFlags.Skybox;View.backgroundColor=new Color(.32f,.58f,.88f);
             View.allowHDR=false;View.allowMSAA=true;
-            origin.Camera=View;origin.CameraFloorOffsetObject=offset.gameObject;
-            origin.RequestedTrackingOriginMode=XROrigin.TrackingOriginMode.Device;
-            origin.CameraYOffset=height;
             driver=cameraGO.AddComponent<TrackedPoseDriver>();driver.enabled=false;
             driver.positionInput=new InputActionProperty(new InputAction("Head Position",InputActionType.Value,"<XRHMD>/centerEyePosition"));
             driver.rotationInput=new InputActionProperty(new InputAction("Head Rotation",InputActionType.Value,"<XRHMD>/centerEyeRotation"));
             driver.trackingStateInput=new InputActionProperty(new InputAction("Head Tracking",InputActionType.Value,"<XRHMD>/trackingState"));
             driver.updateType=TrackedPoseDriver.UpdateType.UpdateAndBeforeRender;
+            bool wasActive=gameObject.activeSelf;
+            gameObject.SetActive(false);
+            origin=gameObject.AddComponent<XROrigin>();
+            origin.CameraFloorOffsetObject=offset.gameObject;origin.Camera=View;
+            origin.RequestedTrackingOriginMode=XROrigin.TrackingOriginMode.Device;
+            origin.CameraYOffset=0;
+            gameObject.SetActive(wasActive);
             DesktopPose();
         }
         void Update()
@@ -42,14 +45,19 @@ namespace CalgaryCycling
             if(View==null)return;
             SubsystemManager.GetSubsystems(displays);
             bool running=false;foreach(var d in displays)running|=d.running;
-            if(running==IsVR)return;
+            if(running==IsVR)
+            {
+                if(running)offset.localPosition=Vector3.up*height;
+                return;
+            }
             IsVR=running;driver.enabled=running;
             if(running)
             {
                 thirdPerson=false;
+                offset.localPosition=Vector3.up*height;
                 View.transform.localPosition=Vector3.zero;View.transform.localRotation=Quaternion.identity;
                 origin.RequestedTrackingOriginMode=XROrigin.TrackingOriginMode.Device;
-                origin.CameraYOffset=height;
+                origin.CameraYOffset=0;
             }
             else DesktopPose();
         }

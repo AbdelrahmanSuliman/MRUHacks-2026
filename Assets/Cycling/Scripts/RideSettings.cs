@@ -22,6 +22,13 @@ namespace CalgaryCycling
         [Range(1, 30)] public float maxYawDegreesPerSecond = 12;
         [Range(1, 2.2f)] public float eyeHeight = 1.65f;
         public bool useRightStick;
+        [Header("Optional external stylized bicycle prefab")]
+        public GameObject bicyclePrefab;
+        public StylizedQualityProfile stylizedQuality;
+        public StylizedAssetLibrary stylizedAssets;
+        public StylizedZone stylizedZone = StylizedZone.Riverfront;
+        [Tooltip("Small local offset used to keep imported near-field art on the Cesium route surface.")]
+        [Range(-2f, 2f)] public float stylizedGroundOffset = .08f;
         [Header("Streaming budgets: starting points, not performance guarantees")]
         [Range(8, 64)] public float screenSpaceError = 24;
         [Range(64, 512)] public int cacheMiB = 128;

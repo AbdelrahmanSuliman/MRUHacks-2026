@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edc781a8e55107c41aa055d272ae6dd9, type: 3}
+  m_Name: ImportedStylizedAssets
+  m_EditorClassIdentifier: 
+  trees:
+  - {fileID: 6019641562236259193, guid: 0dcca41794e68544b8ec6f824b100f35, type: 3}
+  - {fileID: 2627927572900860610, guid: 27888c93d27d454429609c7cf56daab1, type: 3}
+  - {fileID: 763776303290912111, guid: 0e59a0be80dd58a44a0d59ad473da202, type: 3}
+  - {fileID: 4874083550086510469, guid: 82653a26d67f56f4d966a5df5779ff2c, type: 3}
+  - {fileID: 3004133518196345586, guid: ce9a0be61b49359439929a8fbcf1e571, type: 3}
+  - {fileID: 3599063476316720703, guid: 92aa12ddde7d8a14fac82db78da5bfbf, type: 3}
+  bushes:
+  - {fileID: 2738114141647836122, guid: c0595aa077c2c324590c614837c537af, type: 3}
+  - {fileID: 4274150415233254904, guid: 4746661c47821de43ba1223f024683b5, type: 3}
+  - {fileID: 3753272973882393564, guid: 9f964d01e214a594f9ceffa37828161c, type: 3}
+  - {fileID: 6243468439085444411, guid: 92160250d469e5648831d55a860d2b8d, type: 3}
+  - {fileID: 5620309652851102317, guid: 38422aa8e06633845a28bc9d50adc5f3, type: 3}
+  grass:
+  - {fileID: 3965841237103515587, guid: 7b166f8bae1934040bccffcb20ffc5e8, type: 3}
+  - {fileID: 5897515384671290966, guid: 0738223c8e7ed8b42b879c657c9aaf23, type: 3}
+  - {fileID: 5733961443985849369, guid: ffa5986e74dfdcd458f4f244eb67ea69, type: 3}
+  - {fileID: 2514514051348113445, guid: e28d2c1f1a148794db505184421624a0, type: 3}
+  - {fileID: 5444964587566013196, guid: 2872c1b23f3a1bf47a95a3d255058607, type: 3}
+  - {fileID: 5493341208963674698, guid: 465e31fe1a0a7744ea7242f60855d1f6, type: 3}
+  flowers:
+  - {fileID: 2822967629826797633, guid: f19bc1eaa39486149a1d4074a5585b8a, type: 3}
+  - {fileID: 2425825679128587431, guid: 0f43790868e25d944a48059dfe36c7a1, type: 3}
+  - {fileID: 4219992034050196604, guid: 06081d54220304c47b18167f740348c3, type: 3}
+  - {fileID: 6217779932616041722, guid: b4d47c551e14df242b7a742d4d5d0f4d, type: 3}
+  - {fileID: 4584102981613138916, guid: b5c8aaa604bd39744bd7b555a32c993e, type: 3}
+  - {fileID: 5069468421804088612, guid: 98c6a934f4c0c414f9099528fcd3299b, type: 3}
+  - {fileID: 4290940630750217123, guid: 793e397735455ea47ba40c92facd08ab, type: 3}
+  - {fileID: 3675961659468417787, guid: d5841d78f4951e64dba45c0a07390bd3, type: 3}
+  rocks:
+  - {fileID: 7963509424834110092, guid: d7d780ed1ab421c4a8c9769c44975414, type: 3}
+  - {fileID: 7392054271109885574, guid: 7268ff5261267db46886c23d23bfd7ce, type: 3}
+  - {fileID: 6173948487193655335, guid: 82f882421473bbd47b83ec11232866df, type: 3}
+  - {fileID: 941384084242908247, guid: a595b405ba816f54d8bbfc8f0ba6bbb5, type: 3}
+  - {fileID: 5437089347150301123, guid: fad3b3706abf51349ba7bd5a8ccfdd6d, type: 3}
+  - {fileID: 7070428440067825674, guid: 74af4246a6092f848a415568bb393d8e, type: 3}
+  - {fileID: 2270668501373788230, guid: 26c5d293de27afc44a1937eb32e46e08, type: 3}
+  - {fileID: 3408135642827493466, guid: 6f17b46cbdd7cb54d940472f71552feb, type: 3}
+  buildings:
+  - {fileID: 5337369454485653850, guid: 360d5822e57359447b9ce3d8a3b37532, type: 3}
+  - {fileID: 8614566769928799913, guid: 407cec0499750964c87373d454cba99e, type: 3}
+  - {fileID: 575874035240156402, guid: 7497d6b5522b3ef4c975da4d035b26ae, type: 3}
+  - {fileID: 2352241880792767473, guid: 0ff0f5c3302eee844945115bfe13f943, type: 3}
+  - {fileID: 7446242150086142362, guid: 99420a4e47be02047983a8de78548f17, type: 3}
+  - {fileID: 5150551461221631457, guid: 0fdb1dadc44702f499b648f9f11bcf9b, type: 3}
+  - {fileID: 2731906361354674701, guid: 7204a8d4c276a2744a178cde0344b774, type: 3}
+  - {fileID: 1097506586273857988, guid: 8bd38d3f078dafe41b6d7699c405ac4c, type: 3}
+  - {fileID: 7695119763558581554, guid: a824f9a62caf9c54a9458419d6dcbbe8, type: 3}
+  roadDetails: []
+  streetLights:
+  - {fileID: 3566633951122676924, guid: fe742e248ee01324fbcdc9dfc3d0683c, type: 3}
+  fences:
+  - {fileID: 840234040158172142, guid: 03f358efa0d17c64da70da4586677108, type: 3}
+  transitStops:
+  - {fileID: 7099967877580977989, guid: 087fff42d3c77b246925b4782351aa19, type: 3}
+  - {fileID: 8676478622907641567, guid: ff39cab3e6ddeda4ba9d7d17a9501182, type: 3}
+  smallProps:
+  - {fileID: 7769282103224168044, guid: 1567cd1857ec2e243b6f7ca126522873, type: 3}
+  - {fileID: 774150586620734464, guid: 31f228c1024f8da4581961e96457b4b4, type: 3}
+  - {fileID: 1499413424437445256, guid: a5391901c82175647a0dc80298d1724e, type: 3}
+  - {fileID: 6053085787823158449, guid: abaf13a763c700b4c9759cfe2b3ede0a, type: 3}
+  - {fileID: 3738078055998318524, guid: afe45cbd4e2c80847b699dded3cbda43, type: 3}
+  - {fileID: 8779748657665423965, guid: 1cf3082eab4e53e4ea2c6260232e313e, type: 3}
+  - {fileID: 5427522932507016689, guid: 88434706d6ff5e243868b378b33cd8b1, type: 3}

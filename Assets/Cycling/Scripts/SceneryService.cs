@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.IO;
 using CesiumForUnity;
 using UnityEngine;
+using UnityEngine.Networking;
 namespace CalgaryCycling
 {
     public sealed class SceneryService : MonoBehaviour
@@ -20,8 +22,9 @@ namespace CalgaryCycling
         public string Status { get; private set; } = "Not initialized";
         public float Progress { get; private set; }
         public event Action Failure;
-        float elapsed,stable,poll,unready;
+        float elapsed,stable,poll,unready,nextNetworkCheck;
         bool sawTile;
+        Coroutine credentialRoutine;
         RideSettings settings;
         public void Initialize(RideSettings config, Transform georeference)
         {
@@ -59,28 +62,59 @@ namespace CalgaryCycling
         }
         public void Retry()
         {
-            Ready=Failed=sawTile=false;elapsed=stable=poll=unready=0;Progress=0;
+            Ready=Failed=sawTile=false;elapsed=stable=poll=unready=nextNetworkCheck=0;Progress=0;
             if(Tiles==null)return;
+            if(credentialRoutine!=null)StopCoroutine(credentialRoutine);
             Tiles.gameObject.SetActive(false);
+            if(Buildings!=null)Buildings.gameObject.SetActive(false);
+            string networkIssue=SceneryNetwork.BlockingIssue();
+            if(networkIssue!=null){Fail(networkIssue);return;}
+            Status="Loading scenery credentials...";
+            credentialRoutine=StartCoroutine(LoadCredentialsAndStart());
+        }
+
+        IEnumerator LoadCredentialsAndStart()
+        {
             string token=Environment.GetEnvironmentVariable("CALGARY_CESIUM_ION_TOKEN");
             long assetId=1;
             long imageryAssetId=2;
-            try
+            if(!UsableToken(token))
             {
-                if(string.IsNullOrWhiteSpace(token))
+                var paths=new System.Collections.Generic.List<string>
                 {
-                    string path=Path.Combine(Application.persistentDataPath,"cycling-secrets.json");
-                    if(File.Exists(path))
+                    Path.Combine(Application.persistentDataPath,"cycling-secrets.json")
+                };
+#if UNITY_EDITOR
+                paths.Add(Path.GetFullPath(Path.Combine(Application.dataPath,"..","cycling-secrets.json")));
+#endif
+                foreach(string path in paths)
+                {
+                    if(!File.Exists(path))continue;
+                    if(TryReadSecrets(File.ReadAllText(path),out token,out assetId,out imageryAssetId) && UsableToken(token))break;
+                }
+
+                if(!UsableToken(token))
+                {
+                    string streamingPath=Path.Combine(Application.streamingAssetsPath,"cycling-secrets.json");
+                    if(streamingPath.StartsWith("jar:",StringComparison.OrdinalIgnoreCase) ||
+                       streamingPath.StartsWith("http:",StringComparison.OrdinalIgnoreCase) ||
+                       streamingPath.StartsWith("https:",StringComparison.OrdinalIgnoreCase))
                     {
-                        var secrets=JsonUtility.FromJson<Secrets>(File.ReadAllText(path));
-                        token=secrets?.cesiumIonAccessToken;
-                        assetId=secrets == null || secrets.cesiumIonAssetId <= 0 ? 1 : secrets.cesiumIonAssetId;
-                        imageryAssetId=secrets == null || secrets.cesiumIonImageryAssetId < 0 ? 2 : secrets.cesiumIonImageryAssetId;
+                        using(var request=UnityWebRequest.Get(streamingPath))
+                        {
+                            request.timeout=10;
+                            yield return request.SendWebRequest();
+                            if(request.result==UnityWebRequest.Result.Success)
+                                TryReadSecrets(request.downloadHandler.text,out token,out assetId,out imageryAssetId);
+                        }
+                    }
+                    else if(File.Exists(streamingPath))
+                    {
+                        TryReadSecrets(File.ReadAllText(streamingPath),out token,out assetId,out imageryAssetId);
                     }
                 }
             }
-            catch { Fail("Could not read cycling-secrets.json. Check JSON and file permissions.");return; }
-            if(string.IsNullOrWhiteSpace(token)) { Fail("Missing Cesium ion token. Configure cycling-secrets.json, then Retry.");return; }
+            if(!UsableToken(token)) { credentialRoutine=null;Fail("Missing Cesium ion token. Put cycling-secrets.json in the project root, StreamingAssets, or persistent data folder, then Retry.");yield break; }
             Tiles.ionAccessToken=token.Trim();
             Tiles.ionAssetID=assetId;
             Imagery.ionAccessToken=token.Trim();
@@ -88,15 +122,38 @@ namespace CalgaryCycling
             Buildings.ionAccessToken=token.Trim();
             Buildings.ionAssetID=96188; // Cesium ion OSM Buildings asset.
             Status="Connecting to Cesium ion...";
+            Debug.Log("[SceneryService] Cesium credentials loaded. Connecting to terrain, imagery and buildings.");
             Tiles.gameObject.SetActive(true);
             Buildings.gameObject.SetActive(true);
+            credentialRoutine=null;
+        }
+
+        static bool TryReadSecrets(string json,out string token,out long assetId,out long imageryAssetId)
+        {
+            token=null;assetId=1;imageryAssetId=2;
+            try
+            {
+                // File.ReadAllText removes a UTF-8 BOM; DownloadHandler.text on Quest preserves it.
+                // JsonUtility rejects that invisible marker unless it is removed first.
+                var secrets=JsonUtility.FromJson<Secrets>(json?.TrimStart('\uFEFF',' ','\t','\r','\n'));
+                if(secrets==null)return false;
+                token=secrets.cesiumIonAccessToken;
+                assetId=secrets.cesiumIonAssetId<=0?1:secrets.cesiumIonAssetId;
+                imageryAssetId=secrets.cesiumIonImageryAssetId<0?2:secrets.cesiumIonImageryAssetId;
+                return true;
+            }
+            catch { return false; }
         }
         void Update()
         {
             if(Tiles==null || Failed || !Tiles.gameObject.activeSelf)return;
             float dt=Time.unscaledDeltaTime;elapsed+=dt;poll+=dt;
-            if(Application.internetReachability==NetworkReachability.NotReachable)
-            { Fail("No network connection. Reconnect and choose Retry.");return; }
+            if(elapsed>=nextNetworkCheck)
+            {
+                nextNetworkCheck=elapsed+3;
+                string networkIssue=SceneryNetwork.BlockingIssue();
+                if(networkIssue!=null){Fail(networkIssue);return;}
+            }
             if(poll<.25f)return;
             float step=poll;poll=0;
             Progress=Mathf.Clamp(Tiles.ComputeLoadProgress()/100f,0,1);
@@ -124,8 +181,15 @@ namespace CalgaryCycling
             Debug.LogError("[SceneryService] " + message);
             Failure?.Invoke();
         }
+        static bool UsableToken(string token)
+        {
+            if(string.IsNullOrWhiteSpace(token))return false;
+            string value=token.Trim();
+            return value!="=" && !value.Equals("YOUR_CESIUM_ION_TOKEN",StringComparison.OrdinalIgnoreCase);
+        }
         void OnDestroy()
         {
+            if(credentialRoutine!=null)StopCoroutine(credentialRoutine);
             Cesium3DTileset.OnCesium3DTilesetLoadFailure-=LoadFailed;
             if(Tiles!=null)Tiles.OnTileGameObjectCreated-=TileCreated;
             if(Buildings!=null)Buildings.OnTileGameObjectCreated-=TileCreated;

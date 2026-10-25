@@ -87,7 +87,7 @@ namespace CalgaryCycling
         void UpdateDetails()
         {
             if(details==null)return;
-            if(page=="help")details.text="Auto forward. Desktop: A/D or arrows steer; Space pause/resume; R restart; Esc menu; C recenter; V debug view.\nQuest: left stick steer (default); X pause/resume; Y restart; B menu; A recenter. Look at a button and press right trigger.";
+            if(page=="help")details.text="Auto forward. Desktop: A/D or arrows steer; Space pause/resume; R restart; Esc menu; C recenter; V debug view.\nQuest: left stick steer; A or right trigger select; X pause/resume; Y restart; B menu. Look at a button to select it.";
             else if(page=="settings")details.text=$"Cruise: {app.Settings.cruisingSpeed:F1} m/s ({app.Settings.cruisingSpeed*3.6f:F1} km/h)   Steering: {app.Settings.steeringSensitivity:F1}\nChanges apply to this session. Edit RideSettings for saved defaults.\nSit comfortably. Stop if motion feels uncomfortable.";
             else details.text="A short guided ride near Peace Bridge, Calgary.\nSteering moves the bicycle sideways within a bounded corridor.\nThe demonstration deck is authored geometry, not a surveyed public cycling route.";
         }

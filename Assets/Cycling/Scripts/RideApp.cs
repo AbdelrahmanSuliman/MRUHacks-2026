@@ -1,6 +1,7 @@
 using System;
 using CesiumForUnity;
 using UnityEngine;
+using UnityEngine.Rendering;
 namespace CalgaryCycling
 {
     public enum RideState { Menu, Riding, Paused, Finished, Error }
@@ -15,10 +16,13 @@ namespace CalgaryCycling
         public SceneryService Scenery { get; private set; }
         public RoutePlannerService Planner { get; private set; }
         Transform georeference;
-        GameObject demoEnvironment;
+        StylizedEnvironmentBuilder stylizedEnvironment;
         Transform frontWheel, rearWheel, handlebar;
+        Quaternion handlebarRestRotation;
+        float visualSteering;
         public RideState State { get; private set; } = RideState.Menu;
-        public string Message { get; private set; } = "Welcome. Scenery must load before starting.";
+        public string Message { get; private set; } = "Welcome. Choose your ride.";
+        public bool CanRide=>Scenery!=null && (Scenery.Ready || Scenery.Failed);
         string fatal;
         public void SetSettings(RideSettings value) { settings=value; }
         public void SetMessage(string value) { Message=value; }
@@ -34,15 +38,19 @@ namespace CalgaryCycling
                 geo.SetOriginLongitudeLatitudeHeight(Settings.longitude,Settings.latitude,Settings.ellipsoidHeight);
                 var bike=new GameObject("Bicycle");bike.transform.SetParent(geoGO.transform,false);
                 Motor=bike.AddComponent<BicycleMotor>();Motor.Initialize(route,Settings);
-                BuildBike(bike.transform);
-                if(Settings.showDemoDeck)
+                if (Settings.bicyclePrefab != null)
                 {
-                    demoEnvironment=new GameObject("Authored Demo Environment");
-                    demoEnvironment.transform.SetParent(geoGO.transform,false);
-                    BuildDeck(demoEnvironment.transform,route);
-                    BuildDemoVegetation(demoEnvironment.transform,route);
-                    BuildDemoBuildings(demoEnvironment.transform,route);
+                    var importedBike=Instantiate(Settings.bicyclePrefab,bike.transform);
+                    importedBike.name="Imported stylized bicycle";
+                    frontWheel=FindMount(importedBike.transform,"FrontWheel","Front Wheel");
+                    rearWheel=FindMount(importedBike.transform,"RearWheel","Rear Wheel");
+                    handlebar=FindMount(importedBike.transform,"HandlebarRoot","Handlebar");
                 }
+                else BuildBike(bike.transform);
+                if(handlebar!=null)handlebarRestRotation=handlebar.localRotation;
+                stylizedEnvironment = new StylizedEnvironmentBuilder(Settings, geoGO.transform);
+                if (Settings.showDemoDeck || Settings.stylizedAssets != null)
+                    stylizedEnvironment.Build(route, Settings.stylizedZone, true);
                 var rigGO=new GameObject("XR Origin");rigGO.transform.SetParent(bike.transform,false);
                 Rig=rigGO.AddComponent<RiderCamera>();Rig.Initialize(Settings.eyeHeight);
                 Input=new RideInput(Settings.useRightStick);
@@ -55,8 +63,13 @@ namespace CalgaryCycling
                 gameObject.AddComponent<VeloUIManager>().Initialize(this);
                 if(Application.platform!=RuntimePlatform.Android)Application.targetFrameRate=60;
                 QualitySettings.vSyncCount=0;
-                RenderSettings.ambientLight=new Color(.58f,.68f,.78f);
-                RenderSettings.fog=true;RenderSettings.fogColor=new Color(.48f,.65f,.78f);RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogStartDistance=80;RenderSettings.fogEndDistance=420;
+                RenderSettings.ambientMode=AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor=new Color(.42f,.64f,.88f);
+                RenderSettings.ambientEquatorColor=new Color(.78f,.84f,.72f);
+                RenderSettings.ambientGroundColor=new Color(.28f,.36f,.24f);
+                RenderSettings.ambientIntensity=1.15f;
+                RenderSettings.fog=true;RenderSettings.fogColor=new Color(.58f,.75f,.86f);RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogStartDistance=100;RenderSettings.fogEndDistance=500;
+                ConfigureStylizedLighting();
             }
             catch(Exception ex)
             {
@@ -67,6 +80,7 @@ namespace CalgaryCycling
         void Update()
         {
             if(fatal!=null || Input==null)return;
+            Input.Tick();
             if(Input.Menu)Menu();
             else if(Input.Pause) { if(State==RideState.Riding)Pause();else Resume(); }
             if(Input.Restart)Restart();
@@ -75,15 +89,17 @@ namespace CalgaryCycling
             if(State==RideState.Riding)
             {
                 if(!Scenery.Ready && !Scenery.Failed) {Pause();return;}
-                Motor.Tick(Input.Steering(Settings.deadZone),Time.deltaTime);
+                float steering=Input.Steering(Settings.deadZone);
+                Motor.Tick(steering,Time.deltaTime);
                 AnimateBike();
                 if(Motor.Arrived) {State=RideState.Finished;Motor.Stop();Message="Destination reached. Restart for another ride.";}
             }
         }
         public void StartRide()
         {
-            if((!Scenery.Ready && !Scenery.Failed) || State!=RideState.Menu)return;
-            Motor.ResetRide();State=RideState.Riding;Message="Ride in progress.";
+            if(!CanRide || State!=RideState.Menu)return;
+            Input.CalibrateSteering();Motor.ResetRide();State=RideState.Riding;Message="Ride in progress.";
+            Debug.Log("[RideApp] Ride started.");
         }
         public void Pause()
         {
@@ -92,19 +108,24 @@ namespace CalgaryCycling
         }
         public void Resume()
         {
-            if((!Scenery.Ready && !Scenery.Failed) || State!=RideState.Paused)return;
-            State=RideState.Riding;Message="Ride in progress.";
+            if(!CanRide || State!=RideState.Paused)return;
+            Input.CalibrateSteering();State=RideState.Riding;Message="Ride in progress.";
         }
         public void Restart()
         {
             if(Motor==null)return;
-            Motor.ResetRide();State=Scenery.Ready?RideState.Paused:RideState.Error;
+            Motor.ResetRide();State=CanRide?RideState.Paused:RideState.Menu;
             Message="Ride reset. Choose Resume when ready.";
         }
         public void Menu() {Motor.Stop();State=RideState.Menu;Message="Main menu. Choose Start Ride to begin again.";}
         public void Retry() {Motor.Stop();State=RideState.Menu;Message="Retrying scenery. Start when ready.";Scenery.Retry();}
-        public void ApplyOnlineRoute(RoutePlannerService.RouteResult result)
+        public bool ApplyOnlineRoute(RoutePlannerService.RouteResult result)
         {
+            if(result==null || result.points==null || result.points.Count<2)
+            {
+                Message="Route geometry was empty or invalid.";
+                return false;
+            }
             var points=new Vector3[result.points.Count];
             double lat0=Settings.latitude*Math.PI/180.0;
             for(int i=0;i<points.Length;i++)
@@ -116,15 +137,22 @@ namespace CalgaryCycling
             try
             {
                 var route=new RoutePath(points,false);Motor.Initialize(route,Settings);State=RideState.Menu;
-                if(demoEnvironment!=null)demoEnvironment.SetActive(false);
+                stylizedEnvironment?.Build(route, Settings.stylizedZone, true);
                 Message=$"Cycling route loaded: {route.Length/1000f:F1} km. Start when scenery is ready.";
+                return true;
             }
-            catch(Exception ex){Debug.LogError("[RideApp] Route conversion failed: "+ex.Message);Message="Route was too long or invalid.";}
+            catch(Exception ex){Debug.LogError("[RideApp] Route conversion failed: "+ex.Message);Message="Route was too long or invalid.";return false;}
         }
         void SceneryFailure() {if(Motor!=null)Motor.Stop();State=RideState.Menu;Message="Offline demo scenery active. Streaming scenery is unavailable.";}
         public void Recenter()
         {
+            Input?.CalibrateSteering();
             Pause();Message=Rig.Recenter()?"Recenter requested. Resume when comfortable.":"Use the headset's system recenter command, then Resume.";
+        }
+        public void CalibrateHandlebars()
+        {
+            Input?.CalibrateSteering();
+            Message="Hold both grips with your hands straight ahead to centre the handlebars.";
         }
         public void Quit()
         {
@@ -136,7 +164,11 @@ namespace CalgaryCycling
         }
         void OnApplicationFocus(bool focus) {if(!focus)Pause();}
         void OnApplicationPause(bool paused) {if(paused)Pause();}
-        void OnDestroy() {Input?.Dispose();if(Scenery!=null)Scenery.Failure-=SceneryFailure;if(Settings!=null)Destroy(Settings);}
+        void OnDestroy()
+        {
+            Input?.Dispose();stylizedEnvironment?.Dispose();if(Scenery!=null)Scenery.Failure-=SceneryFailure;
+            if(Settings!=null){if(Application.isPlaying)Destroy(Settings);else DestroyImmediate(Settings);}
+        }
         void ShowFatalError()
         {
             if(Rig==null)
@@ -159,6 +191,26 @@ namespace CalgaryCycling
         {
             var m=new Material(Shader.Find("Universal Render Pipeline/Unlit"));m.color=color;return m;
         }
+        static void ConfigureStylizedLighting()
+        {
+            var sun=RenderSettings.sun;
+            if(sun==null)
+            {
+                var go=new GameObject("Warm Alpine Sun");sun=go.AddComponent<Light>();sun.type=LightType.Directional;RenderSettings.sun=sun;
+            }
+            sun.color=new Color(1f,.73f,.48f);sun.intensity=1.15f;sun.shadows=LightShadows.Soft;sun.shadowStrength=.72f;
+            sun.transform.rotation=Quaternion.Euler(38f,-28f,0f);
+            var sky=RenderSettings.skybox;
+            if(sky==null || sky.shader==null || !sky.shader.name.Contains("Skybox"))
+            {
+                sky=new Material(Shader.Find("Skybox/Procedural"));
+                RenderSettings.skybox=sky;
+            }
+            if(sky!=null && sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint",new Color(.28f,.55f,.9f));
+            if(sky!=null && sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor",new Color(.72f,.78f,.66f));
+            if(sky!=null && sky.HasProperty("_SunSize")) sky.SetFloat("_SunSize",.04f);
+            DynamicGI.UpdateEnvironment();
+        }
         static GameObject Part(Transform parent,string name,PrimitiveType shape,Vector3 p,Vector3 scale,Quaternion rotation,Material mat)
         {
             var go=GameObject.CreatePrimitive(shape);go.name=name;go.transform.SetParent(parent,false);
@@ -167,66 +219,42 @@ namespace CalgaryCycling
         }
         void BuildBike(Transform parent)
         {
-            var teal=Material(new Color(.05f,.65f,.65f));var dark=Material(new Color(.025f,.03f,.035f));
+            var teal=Material(new Color(.05f,.65f,.65f));var dark=Material(new Color(.04f,.09f,.10f));var yellow=Material(new Color(.96f,.66f,.12f));
             frontWheel=Part(parent,"Front wheel",PrimitiveType.Cylinder,new Vector3(0,.34f,.65f),new Vector3(.68f,.035f,.68f),Quaternion.Euler(0,0,90),dark).transform;
             rearWheel=Part(parent,"Rear wheel",PrimitiveType.Cylinder,new Vector3(0,.34f,-.65f),new Vector3(.68f,.035f,.68f),Quaternion.Euler(0,0,90),dark).transform;
             Part(parent,"Frame",PrimitiveType.Cube,new Vector3(0,.65f,0),new Vector3(.07f,.08f,1.2f),Quaternion.Euler(-15,0,0),teal);
-            Part(parent,"Stem",PrimitiveType.Cube,new Vector3(0,.85f,.6f),new Vector3(.05f,.65f,.05f),Quaternion.identity,teal);
-            handlebar=Part(parent,"Handlebar",PrimitiveType.Cube,new Vector3(0,1.16f,.6f),new Vector3(.65f,.04f,.05f),Quaternion.identity,dark).transform;
-            Part(parent,"Saddle",PrimitiveType.Cube,new Vector3(0,.9f,-.35f),new Vector3(.24f,.06f,.32f),Quaternion.identity,dark);
+            Part(parent,"Stem",PrimitiveType.Cube,new Vector3(0,1.05f,.825f),new Vector3(.045f,.54f,.045f),Quaternion.FromToRotation(Vector3.up,new Vector3(0,.3f,.45f)),teal);
+            handlebar=new GameObject("HandlebarRoot").transform;handlebar.SetParent(parent,false);
+            handlebar.localPosition=new Vector3(0,1.20f,1.05f);
+            Part(handlebar,"Warm alloy handlebar",PrimitiveType.Cylinder,Vector3.zero,new Vector3(.035f,.34f,.035f),Quaternion.Euler(0,0,90),yellow);
+            Part(handlebar,"Left rubber grip",PrimitiveType.Cylinder,new Vector3(-.29f,0,0),new Vector3(.048f,.075f,.048f),Quaternion.Euler(0,0,90),dark);
+            Part(handlebar,"Right rubber grip",PrimitiveType.Cylinder,new Vector3(.29f,0,0),new Vector3(.048f,.075f,.048f),Quaternion.Euler(0,0,90),dark);
+            Part(handlebar,"Left brake lever",PrimitiveType.Cube,new Vector3(-.24f,-.025f,.07f),new Vector3(.12f,.025f,.035f),Quaternion.Euler(0,20,0),dark);
+            Part(handlebar,"Right brake lever",PrimitiveType.Cube,new Vector3(.24f,-.025f,.07f),new Vector3(.12f,.025f,.035f),Quaternion.Euler(0,-20,0),dark);
+            Part(parent,"Saddle",PrimitiveType.Cube,new Vector3(0,.9f,-.35f),new Vector3(.3f,.08f,.38f),Quaternion.identity,dark);
+        }
+        static Transform FindMount(Transform root,params string[] names)
+        {
+            foreach(var name in names)
+            {
+                var child=FindRecursive(root,name);
+                if(child!=null)return child;
+            }
+            return null;
+        }
+        static Transform FindRecursive(Transform root,string name)
+        {
+            if(root.name.Equals(name,StringComparison.OrdinalIgnoreCase))return root;
+            for(int i=0;i<root.childCount;i++){var found=FindRecursive(root.GetChild(i),name);if(found!=null)return found;}
+            return null;
         }
         void AnimateBike()
         {
             float spin=Motor.Speed*Time.deltaTime*360f;
             if(frontWheel!=null)frontWheel.Rotate(Vector3.forward,spin,Space.Self);
             if(rearWheel!=null)rearWheel.Rotate(Vector3.forward,spin,Space.Self);
-            if(handlebar!=null)handlebar.localRotation=Quaternion.Euler(0,Input.Steering(Settings.deadZone)*18f,0);
-        }
-        void BuildDeck(Transform parent,RoutePath route)
-        {
-            var mat=Material(new Color(.14f,.17f,.19f));
-            var edge=Material(new Color(.04f,.75f,.82f));var arrow=Material(new Color(.2f,.95f,.5f));
-            for(float d=0;d<route.Length;d+=2)
-            {
-                Vector3 a=route.Position(d),b=route.Position(Mathf.Min(d+2,route.Length));
-                Part(parent,"Authored demo deck",PrimitiveType.Cube,(a+b)*.5f-Vector3.up*.08f,
-                    new Vector3(Settings.corridorHalfWidth*2+.8f,.15f,Vector3.Distance(a,b)+.1f),
-                    Quaternion.LookRotation((b-a).normalized,Vector3.up),mat);
-            }
-            for(float d=6;d<route.Length;d+=12)
-            {
-                Vector3 p=route.Position(d)+Vector3.up*.11f;Vector3 f=route.Forward(d);
-                Part(parent,"Cyan route edge L",PrimitiveType.Cube,route.Position(d)+route.Right(d)*(Settings.corridorHalfWidth+.18f)+Vector3.up*.04f,new Vector3(.06f,.025f,1.1f),Quaternion.LookRotation(f,Vector3.up),edge);
-                Part(parent,"Cyan route edge R",PrimitiveType.Cube,route.Position(d)-route.Right(d)*(Settings.corridorHalfWidth+.18f)+Vector3.up*.04f,new Vector3(.06f,.025f,1.1f),Quaternion.LookRotation(f,Vector3.up),edge);
-                Part(parent,"Green route arrow",PrimitiveType.Cube,p+f*.35f,new Vector3(.18f,.035f,.7f),Quaternion.LookRotation(f,Vector3.up),arrow);
-            }
-        }
-        void BuildDemoVegetation(Transform parent,RoutePath route)
-        {
-            var trunk=Material(new Color(.18f,.09f,.035f));var leaves=Material(new Color(.05f,.28f,.12f));
-            for(float d=8;d<route.Length;d+=16)
-            {
-                Vector3 c=route.Position(d);Vector3 r=route.Right(d);
-                for(int side=-1;side<=1;side+=2)
-                {
-                    Vector3 p=c+r*side*(Settings.corridorHalfWidth+3.5f);Part(parent,"Demo tree trunk",PrimitiveType.Cylinder,p+Vector3.up*1.1f,new Vector3(.18f,1.1f,.18f),Quaternion.identity,trunk);Part(parent,"Demo tree canopy",PrimitiveType.Sphere,p+Vector3.up*2.5f,new Vector3(1.3f,1.6f,1.3f),Quaternion.identity,leaves);
-                }
-            }
-        }
-        void BuildDemoBuildings(Transform parent,RoutePath route)
-        {
-            var walls=new[]{Material(new Color(.28f,.38f,.48f)),Material(new Color(.42f,.31f,.25f)),Material(new Color(.24f,.46f,.48f))};
-            var roofs=Material(new Color(.06f,.10f,.14f));
-            for(float d=18;d<route.Length;d+=28)
-            {
-                Vector3 c=route.Position(d);Vector3 r=route.Right(d);Vector3 f=route.Forward(d);
-                for(int side=-1;side<=1;side+=2)
-                {
-                    Vector3 p=c+r*side*(Settings.corridorHalfWidth+8f);float h=3.5f+(Mathf.Abs(Mathf.Sin(d*.13f))*4f);float w=4f+(Mathf.Abs(Mathf.Cos(d*.07f))*4f);
-                    Part(parent,"Stylized city building",PrimitiveType.Cube,p+Vector3.up*(h*.5f),new Vector3(w,h,6f),Quaternion.LookRotation(f,Vector3.up),walls[Mathf.Abs(Mathf.RoundToInt(d))%walls.Length]);
-                    Part(parent,"Building roof",PrimitiveType.Cube,p+Vector3.up*(h+.12f),new Vector3(w+.15f,.18f,6.15f),Quaternion.LookRotation(f,Vector3.up),roofs);
-                }
-            }
+            visualSteering=Mathf.Lerp(visualSteering,Input.CurrentSteering,1-Mathf.Exp(-8f*Time.deltaTime));
+            if(handlebar!=null)handlebar.localRotation=handlebarRestRotation*Quaternion.Euler(0,visualSteering*25f,0);
         }
     }
 }

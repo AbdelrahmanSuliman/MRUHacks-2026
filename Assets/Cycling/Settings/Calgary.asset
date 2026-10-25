@@ -16,11 +16,15 @@ MonoBehaviour:
   latitude: 51.05389
   ellipsoidHeight: 1040
   waypoints:
-  - {x: 0, y: 0, z: -45}
-  - {x: 0, y: 0, z: -20}
-  - {x: 2, y: 0, z: 5}
-  - {x: 6, y: 0, z: 30}
-  - {x: 12, y: 0, z: 55}
+  - {x: 0, y: 0, z: -35}
+  - {x: 18, y: 0, z: -22}
+  - {x: 25, y: 0, z: 0}
+  - {x: 18, y: 0, z: 28}
+  - {x: 0, y: 0, z: 48}
+  - {x: -24, y: 0, z: 35}
+  - {x: -30, y: 0, z: 10}
+  - {x: -20, y: 0, z: -16}
+  - {x: 0, y: 0, z: -35}
   corridorHalfWidth: 1.2
   cruisingSpeed: 3
   steeringSensitivity: 1
@@ -31,6 +35,10 @@ MonoBehaviour:
   maxYawDegreesPerSecond: 12
   eyeHeight: 1.65
   useRightStick: 0
+  bicyclePrefab: {fileID: 0}
+  stylizedQuality: {fileID: 11400000, guid: 08890cfaced43c54db97dbae77fa8e93, type: 2}
+  stylizedAssets: {fileID: 11400000, guid: f23ce556d39218547945463f5b712f9f, type: 2}
+  stylizedZone: 0
   screenSpaceError: 24
   cacheMiB: 128
   simultaneousLoads: 4

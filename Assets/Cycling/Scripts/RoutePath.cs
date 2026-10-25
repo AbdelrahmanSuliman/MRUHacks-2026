@@ -10,6 +10,7 @@ namespace CalgaryCycling
         readonly List<Vector3> points = new List<Vector3>();
         readonly List<float> lengths = new List<float>();
         public float Length => lengths.Count == 0 ? 0 : lengths[lengths.Count - 1];
+        public IReadOnlyList<Vector3> Samples => points;
         public RoutePath(Vector3[] waypoints) : this(waypoints, true) { }
         public RoutePath(Vector3[] waypoints, bool smooth)
         {

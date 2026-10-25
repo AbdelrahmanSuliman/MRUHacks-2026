@@ -14,6 +14,9 @@ namespace CalgaryCycling
         PanelSettings previous;
         public void Initialize(Camera camera)
         {
+            // Desktop already has Cesium's screen footer. Quest needs a texture
+            // on a world-space canvas so the attribution is visible in both eyes.
+            if(Application.platform!=RuntimePlatform.Android && !UnityEngine.XR.XRSettings.isDeviceActive)return;
             var credits=CesiumCreditSystem.GetDefaultCreditSystem();
             document=credits.GetComponent<UIDocument>();
             if(document==null || document.panelSettings==null)
@@ -31,18 +34,18 @@ namespace CalgaryCycling
             canvasGO.transform.SetParent(camera.transform,false);
             var canvas=canvasGO.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=camera;
             var rect=(RectTransform)canvasGO.transform;
-            rect.sizeDelta=new Vector2(1600,350);rect.localScale=Vector3.one*.00135f;
-            rect.localPosition=new Vector3(0,-1.1f,2);
+            rect.sizeDelta=new Vector2(1600,300);rect.localScale=Vector3.one*.0007f;
+            rect.localPosition=new Vector3(0,-.84f,2f);
             var bg=new GameObject("Background",typeof(RectTransform),typeof(UnityEngine.UI.Image));bg.transform.SetParent(rect,false);
             var br=(RectTransform)bg.transform;br.anchorMin=Vector2.zero;br.anchorMax=Vector2.one;br.sizeDelta=Vector2.zero;
             bg.GetComponent<UnityEngine.UI.Image>().color=new Color(.015f,.025f,.04f,.95f);
             var img=new GameObject("Live provider credits",typeof(RectTransform),typeof(RawImage));img.transform.SetParent(rect,false);
-            var ir=(RectTransform)img.transform;ir.sizeDelta=new Vector2(1600,300);ir.anchoredPosition=new Vector2(0,-25);
+            var ir=(RectTransform)img.transform;ir.sizeDelta=new Vector2(1600,260);ir.anchoredPosition=new Vector2(0,-20);
             img.GetComponent<RawImage>().texture=texture;img.GetComponent<RawImage>().raycastTarget=false;
             var label=new GameObject("Map source",typeof(RectTransform),typeof(Text));label.transform.SetParent(rect,false);
-            var lr=(RectTransform)label.transform;lr.sizeDelta=new Vector2(1560,50);lr.anchoredPosition=new Vector2(0,145);
+            var lr=(RectTransform)label.transform;lr.sizeDelta=new Vector2(1560,34);lr.anchoredPosition=new Vector2(0,130);
             var text=label.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize=23;text.alignment=TextAnchor.MiddleCenter;text.color=Color.white;
+            text.fontSize=24;text.alignment=TextAnchor.MiddleCenter;text.color=Color.white;
             text.text="Scenery: Cesium ion terrain, aerial imagery and OSM Buildings  |  Bicycle and demo route: Calgary Cycling Simulator";
         }
         void OnDestroy()
