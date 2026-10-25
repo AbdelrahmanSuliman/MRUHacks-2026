@@ -8,7 +8,7 @@ Start here. These are deliberately pinned versions, not a claim that they are th
 |---|---|---|
 | Unity Editor | **6000.0.66f2**, Unity 6.0 LTS | Editor and Android player |
 | Universal Render Pipeline and Shader Graph | **17.0.4** | Rendering; aligned with the Unity 6.0 package family |
-| Cesium for Unity | **1.18.1** | Google 3D Tiles streaming and georeference |
+| Cesium for Unity | **1.18.1** | Cesium ion 3D Tiles streaming and georeference |
 | Meta XR Core SDK | **77.0.0** | Meta SDK installation and project tooling |
 | Unity OpenXR Plugin | **1.14.0** | The active XR provider, Touch profiles and headset tracking |
 | XR Plug-in Management | **4.4.0** | Android XR initialization |
@@ -20,63 +20,64 @@ Start here. These are deliberately pinned versions, not a claim that they are th
 
 `Packages/manifest.json` includes these dependencies and Cesium's scoped registry. Other dependencies resolve through Unity. Commit Unity's resulting `packages-lock.json` after successful resolution; none is fabricated in this archive. Android SDK, NDK and OpenJDK must be the modules installed for this editor by Unity Hub, not independently chosen versions.
 
-This is a complete source implementation and scene generator, **not a compiled or headset-certified build**. C# syntax was parsed here, and key Cesium 1.18.1, Input System 1.11.2 and XR Core Utilities 2.3.0 APIs were inspected in source. No Unity editor, C# compiler, Google credential or Quest device was available for an end-to-end test. Resolve packages, compile, run the included checks, and perform the device checklist before presenting. Package metadata compatibility is not equivalent to a tested full-stack combination.
+This is a source implementation and scene generator, **not a verified or headset-certified build**. C# syntax was parsed here, and key Cesium 1.18.1, Input System 1.11.2 and XR Core Utilities 2.3.0 APIs were inspected in source. No Unity editor, C# compiler, Cesium ion token or Quest device was available for an end-to-end test. Resolve packages, compile, run the included checks, and perform the device checklist before presenting. Package metadata compatibility is not equivalent to a tested full-stack combination.
 
-The supported assembly path is Windows or macOS. Meta Core 77 has a reported Linux editor configuration issue; this source archive was written in Linux but not opened in its Unity editor. Use a Windows/macOS development machine for the documented Quest workflow.
+The documented assembly path is Windows or macOS. Meta Core 77 has a reported Linux editor configuration issue; this project has not been imported or run in Unity on Linux. For a Quest on a Linux laptop, the reliable Linux-side option is to install and launch the Android APK on the headset with ADB; the headset renders the experience itself. This is not laptop-rendered PCVR. Running PCVR from Linux additionally requires a Linux-compatible Unity Editor and OpenXR runtime/headset setup, which is not validated for this project. Quest Link PCVR is not the same as installing the standalone APK.
 
 ## 2. First project setup
 
-1. Install Unity Hub, sign in, and install **6000.0.66f2** from Unity's release archive if it is not in Hub's normal list. Include **Android Build Support**, **Android SDK & NDK Tools**, and **OpenJDK**. Activate a Unity license suitable for your use.
+1. Install Unity Hub, sign in, and install **6000.0.66f2** from Unity's release archive if it is not in Hub's normal list. For standalone Quest APKs, include **Android Build Support**, **Android SDK & NDK Tools**, and **OpenJDK**. For a Windows desktop player, include **Windows Build Support (IL2CPP)**. Editor Play mode does not require either player target's build modules. Activate a Unity license suitable for your use.
 2. Extract this archive to a writable folder. In Unity Hub choose **Add > Add project from disk** and choose the `CalgaryCycling` folder containing `Assets`, `Packages` and `ProjectSettings`.
 3. Open it with the pinned editor. Unity generates normal missing settings and `.meta` files. Allow package downloads and imports to finish. The first import can take several minutes.
 4. If prompted to enable the new Input System, accept and restart. Otherwise choose **Edit > Project Settings > Player > Other Settings > Active Input Handling > Input System Package (New)** and restart. Do not choose the old input manager.
 5. The manifest installs Cesium from `https://unity.pkg.cesium.com`, scope `com.cesium.unity`. If your package manager cannot reach that registry, download the **release `.tgz`**, not the GitHub source ZIP, from [Cesium 1.18.1](https://github.com/CesiumGS/cesium-unity/releases/tag/v1.18.1), then use Package Manager > + > Add package from tarball. Update the manifest to that local tarball reference. Source ZIPs do not contain the built native libraries.
 6. In the Unity menu select **Calgary Cycling > Create Demo Scene**. Save any existing scene if prompted. The command creates `Assets/Cycling/Scenes/Calgary.unity`, the settings asset and URP renderer/pipeline assets. It adds Calgary to the build scene list. Do this after scripts have compiled.
 7. Keep the scene's root at position zero, rotation zero and scale one. The only Inspector reference required is `RideApp > Settings`, which the generator assigns automatically.
-8. Open **Project Settings > XR Plug-in Management**. On the **desktop tab**, leave XR providers disabled for keyboard development. On the **Android tab**, enable **OpenXR** and **Initialize XR on Startup**.
-9. Under Android **OpenXR**, add **Oculus Touch Controller Profile** to Interaction Profiles and enable **Meta Quest Support** in the feature groups. Use **Single Pass Instanced** rendering. Fix the relevant errors in OpenXR Project Validation. Menu wording varies slightly across editor/package versions.
+8. Open **Project Settings > XR Plug-in Management**. For keyboard-only desktop development, leave the desktop XR provider disabled. For Quest Link PCVR in the Windows Editor, enable **OpenXR** on the desktop tab and **Initialize XR on Startup**; connect the Quest with Link and make Meta Quest Link the active OpenXR runtime. On Android, enable **OpenXR** and **Initialize XR on Startup** for standalone builds.
+9. Under Android **OpenXR**, add **Oculus Touch Controller Profile** to Interaction Profiles and enable **Meta Quest Support** in the feature groups. Use **Single Pass Instanced** rendering. For Windows PCVR, add the Touch profile in the desktop OpenXR settings too. Fix relevant errors in OpenXR Project Validation. Menu wording varies slightly across editor/package versions.
 10. The manifest includes Meta XR Core. Do not add an OVRCameraRig or an OVRManager camera to this scene: `RiderCamera` already creates an OpenXR XROrigin and tracked camera. The application uses Unity OpenXR input APIs, not OVRInput. Meta's Interaction SDK, XR Interaction Toolkit, passthrough, hand tracking and Platform SDK are not dependencies of this implementation.
 11. Run **Calgary Cycling > Run Core Checks**. Expect one `PASS` Console message. A failure must be fixed before proceeding.
-12. Configure Google access below, then press Play. Wait for the loading message to finish and click **Start Ride**.
+12. Configure Cesium ion access below, then press Play. Wait for the loading message to finish and click **Start Ride**.
 
-No downloaded art, paid bicycle model, prefab or hand-wired UI is required. The source creates a basic bicycle representation, deck, menu and camera. Photorealism comes from streamed Google scenery, not the procedural bicycle model.
+No downloaded art, paid bicycle model, prefab or hand-wired UI is required. The source creates a basic bicycle representation, deck, menu and camera. The scenery is streamed from Cesium ion; it is separate from the authored bicycle and route.
 
-## 3. Google Maps configuration and credentials
+## 3. Cesium ion configuration and credentials
 
-In Google Cloud Console, select or create your project, associate the appropriate billing account, and enable **Map Tiles API** (`tile.googleapis.com`). Create a dedicated API key for this demonstration. Restrict its API access to Map Tiles API. Set usage quotas, budget alerts and monitoring deliberately; alerts alone are not a spending cap.
+Create a Cesium ion account and an access token that can access the terrain asset selected by `cesiumIonAssetId`, imagery asset selected by `cesiumIonImageryAssetId`, and Cesium ion OSM Buildings asset **96188**. Defaults are **1** (Cesium World Terrain) and **2** (Cesium World Imagery). The imagery layer adds aerial color/texture over the terrain while OSM Buildings supplies 3D building shapes. This is the best current no-Google-key option in this project; it is not Google's photorealistic 3D mesh. Review your account's applicable usage limits and terms.
 
-For this direct Cesium HTTP integration, use an **IP restriction matching the fixed public egress IP of your demonstration network**, where practical. A Quest and laptop on the same NAT network commonly share that public IP. Verify the actual IPv4/IPv6 egress used; a hotspot, VPN or venue network change can invalidate the restriction. Do not assume browser referrer restrictions or Android package-name/signature restrictions work with Cesium's native URL requests: this code does not add Android authentication headers. Google recommends additional protection for direct client web-service use; consult the current security guidance linked below before distribution.
-
-The key is not included in the source or APK by this implementation. Create a local file named `cycling-secrets.json` containing:
+The token is not included in source control. Create a local file named `cycling-secrets.json` containing:
 
 ```json
 {
-  "googleMapsApiKey": ""
+  "cesiumIonAccessToken": "YOUR_CESIUM_ION_ACCESS_TOKEN",
+  "cesiumIonAssetId": 1,
+  "cesiumIonImageryAssetId": 2,
+  "openRouteServiceApiKey": "OPTIONAL_OPENROUTESERVICE_KEY"
 }
 ```
 
-Put your real key between the empty quotes. This empty field is the only credential input you must supply; no core code needs replacing. Keep the file outside the project and source control. Do not paste a real key into an issue, screenshot, Inspector asset or README.
+Replace the Cesium token placeholder with your token. The imagery ID can be set to `0` to disable the imagery overlay. The route-planner key is optional; it is only needed for Calgary address search and real cycling routes. Obtain it from OpenRouteService if you want that feature. Keep the file outside the project and source control. Do not paste credentials into an issue, screenshot, Inspector asset or README.
 
-**Desktop:** use **Calgary Cycling > Show Credential Folder**, then create the file in the folder opened. The code reads `Application.persistentDataPath`. With the generated company/product settings, Windows typically uses `%USERPROFILE%\AppData\LocalLow\CalgaryCycling\Calgary Cycling Simulator`; macOS uses Unity's Application Support location. Prefer the menu over guessing. Alternatively set environment variable `CALGARY_GOOGLE_MAPS_KEY` before launching the editor/player; it takes precedence over the file. Unity Hub must inherit it if Hub launches the editor.
+**Desktop:** use **Calgary Cycling > Show Credential Folder**, then create the file in the folder opened. The code reads `Application.persistentDataPath`. Alternatively, set `CALGARY_CESIUM_ION_TOKEN` for scenery and/or `CALGARY_ORS_API_KEY` for route planning before launching Unity; each environment variable takes precedence over its matching file value.
 
-**Quest:** install and launch the APK once, then close it. With ADB connected, run from the directory containing your local secrets file:
+**Quest APK:** install and launch the APK once, then close it. With ADB connected, run from the directory containing your local secrets file:
 
 ```bash
 adb shell mkdir -p /sdcard/Android/data/ca.calgarycycling.simulator/files
 adb push cycling-secrets.json /sdcard/Android/data/ca.calgarycycling.simulator/files/cycling-secrets.json
 ```
 
-Launch again or choose **Retry Scenery**. This device file is readable on a developer-controlled device; it is not a secret vault. The active Cesium URL also necessarily contains the key in memory and may appear in SDK diagnostics. Our UI suppresses raw SDK error messages, but inspect and redact Unity/ADB logs before sharing. Revoke/rotate the demonstration key when finished. A public release requires a separately reviewed credential-delivery and authorization design; it is outside this local demonstration build.
+Launch again or choose **Retry Scenery**. This device file is readable on a developer-controlled device; it is not a secret vault. The token is used by Cesium at runtime and may appear in SDK diagnostics. Inspect and redact Unity/ADB logs before sharing. Revoke the demonstration token when finished. A public release requires a separately reviewed credential-delivery and authorization design; it is outside this local demonstration build.
 
-`SceneryService` creates a Cesium3DTileset below a CesiumGeoreference and supplies the documented HTTPS root URL at runtime. This path connects directly to Google; no Cesium ion token/account is needed for this specific data path. Do not also Quick Add another Google tileset or World Terrain. Multiple overlapping sources waste memory and can conflict visually.
+`SceneryService` creates Cesium ion terrain and OSM Buildings tilesets plus an imagery overlay. Google Photorealistic 3D Tiles is not enabled: it needs a Google Maps Platform key and billing, and its current pricing/terms should be checked before choosing it. Cesium imagery and terrain still depend on the token's asset access and account terms.
 
-There is no offline Google mode. The application needs internet access throughout the ride. It does not download a permanent scenery pack. Temporary SDK streaming caches are not an offline distribution mechanism. Follow current Google terms, cache directives and attribution requirements. Do not extract, trace, export or redistribute Google's meshes as your own assets.
+There is no offline scenery mode. The application needs internet access throughout the ride. It does not download a permanent scenery pack. Temporary SDK streaming caches are not an offline distribution mechanism. Follow Cesium ion and underlying data-provider terms and attribution requirements.
 
 ## 4. Calgary origin and route
 
 The georeference uses **latitude 51.05389, longitude -114.07883**, the published Peace Bridge location. This is a verified landmark coordinate, not a claimed surveyed trail endpoint. The initial **1040 m ellipsoid height is an estimate** and must be checked on the actual streamed view. Cesium height is above WGS84 ellipsoid, not above mean sea level; a normal map altitude cannot be substituted without considering the vertical datum.
 
-The default five local waypoints describe a roughly 100 m, gently curving **authored demonstration route near the landmark**. They are not claimed to match the bridge deck or a public path. A dark procedural deck makes the synthetic route explicit. It is independent authored geometry, not geometry traced from Google tiles. The UI identifies this distinction.
+The default five local waypoints describe a roughly 100 m, gently curving **authored demonstration route near the landmark**. They are not claimed to match the bridge deck or a public path. A dark procedural deck makes the synthetic route explicit. It is independent authored geometry, not geometry traced from streamed tiles. The UI identifies this distinction.
 
 Before a live demonstration:
 
@@ -126,9 +127,9 @@ Start is disabled until the current view has produced a tile and the reported lo
 
 ## 6. Live attribution in VR
 
-`CreditDisplay` retains Cesium's built-in live credit collection and official imagery/provider strings. Its UI Toolkit document is rendered into a 1600×300 RenderTexture displayed on a small world-space panel under the headset view. This avoids the common issue of a desktop overlay missing from stereo rendering. An additional label distinguishes the Google Maps scenery from the authored bicycle/deck.
+`CreditDisplay` retains Cesium's built-in live credit collection and official imagery/provider strings. Its UI Toolkit document is rendered into a 1600×300 RenderTexture displayed on a small world-space panel under the headset view. This avoids the common issue of a desktop overlay missing from stereo rendering. An additional label distinguishes streamed scenery from the authored bicycle/deck.
 
-Do not hide this panel during a ride or replace provider strings with a fixed copyright year. Before presenting, inspect both eyes for legibility, complete logos, current provider attribution and clipping at your headset's render resolution. The fixed-size panel must be enlarged if a particular view's credits do not fit. `showCreditsOnScreen` is forced on so provider attribution is not hidden behind a nonfunctional popup. Google policies can change; review the current attribution guidance before distribution.
+Do not hide this panel during a ride or replace provider strings with a fixed copyright year. Before presenting, inspect both eyes for legibility, complete logos, current provider attribution and clipping at your headset's render resolution. The fixed-size panel must be enlarged if a particular view's credits do not fit. `showCreditsOnScreen` is forced on so provider attribution is not hidden behind a nonfunctional popup. Review the current Cesium ion and data-provider attribution requirements before distribution.
 
 ## 7. Android and Quest 2 build
 
@@ -136,7 +137,7 @@ Do not hide this panel during a ride or replace provider strings with a fixed co
 2. Verify that only the generated `Calgary.unity` scene is enabled. The scene generator sets package identifier **ca.calgarycycling.simulator**, IL2CPP, ARM64 only, Linear colour, minimum API 29 and Internet permission. Target API is Automatic/highest installed for local sideloading. Store submission requirements are separate and can change.
 3. In Player > Other Settings, set graphics APIs explicitly to **Vulkan** for the initial build; disable Auto Graphics API. If the device/driver exhibits a verified rendering problem, test a separate OpenGLES3 build and compare. Use the Unity-installed JDK/SDK/NDK in External Tools.
 4. Check Android OpenXR is enabled, Meta Quest Support enabled, Oculus Touch profile added, and initialization on startup enabled. Run Project Validation again after switching platforms. Do not enable both the Oculus and OpenXR loaders.
-5. In the generated URP asset, verify 2× MSAA, HDR off, render scale 0.85, and no additional renderer effects. Disable main/additional light shadows and extra depth/opaque textures if a package/default has enabled them. Google tile materials are normally unlit. Keep the runtime Unlit shader in Graphics > Always Included Shaders; the scene generator adds it for the procedural objects.
+5. In the generated URP asset, verify 2× MSAA, HDR off, render scale 0.85, and no additional renderer effects. Disable main/additional light shadows and extra depth/opaque textures if a package/default has enabled them. Cesium tile materials are normally unlit. Keep the runtime Unlit shader in Graphics > Always Included Shaders; the scene generator adds it for the procedural objects.
 6. Use a **Development Build** for initial profiling and troubleshooting. Release builds should be tested separately before the event. Do not enable Script Debugging in the final performance measurement.
 7. Register/verify a Meta developer account. In the paired **Meta Horizon mobile app**, choose your headset > Headset Settings > Developer Mode and enable it. Account/organization enrollment screens vary; complete the requirements shown in Meta's developer dashboard.
 8. Connect a USB-C **data** cable. Wear the headset and authorize USB debugging for your trusted computer. Install Meta's ADB USB driver on Windows if needed; macOS generally does not need that driver. In Meta Quest Developer Hub (MQDH), verify the device is active.
@@ -153,11 +154,19 @@ adb shell monkey -p ca.calgarycycling.simulator -c android.intent.category.LAUNC
 
 You can also install the APK with MQDH's device/app installation controls and launch it from the device's Unknown Sources app list. Do not uninstall an existing build casually: uninstall removes its app data, including the secrets file. A signature mismatch requires either the original signing key or an intentional uninstall/reprovision.
 
-Desktop build: select the desktop build profile, keep desktop XR disabled, include Calgary, build and launch. Provision credentials in the desktop player's persistent-data folder. PC streaming through Link is a separate testing path and is **not** evidence of standalone Quest performance.
+### Windows laptop with Quest Link (PCVR)
+
+1. Install the pinned Unity Editor and the Meta Quest Link PC app on Windows. Pair the Quest 2, then connect through Link (USB or Air Link) and enter the Link environment.
+2. In Quest Link settings, make Meta Quest Link the active OpenXR runtime. In Unity's **XR Plug-in Management > Standalone**, enable OpenXR and initialize XR on startup; add the Oculus Touch Controller Profile.
+3. Press Play in the Editor to test, or select the Windows desktop build profile and build a Windows player. Keep the headset connected and inside the Link environment while launching the player. Desktop XR disabled means keyboard-only mode, not PCVR.
+4. Provision `cycling-secrets.json` in the Windows player's `Application.persistentDataPath` (or the Editor's path shown by **Calgary Cycling > Show Credential Folder**). Press Play, wait for scenery, then use the dashboard's **Plan a Route**.
+5. For real bicycle directions, add your OpenRouteService key to the secrets file. Enter both Calgary addresses with the keyboard, search each, then calculate. The app follows the returned route continuously; it does not instantly jump between route waypoints. Without that key, use the included short demonstration route.
+
+This is laptop-rendered PCVR, distinct from installing the standalone Android APK. It still needs Windows, the Link runtime and network access. This environment is Linux, so I cannot run or certify the Windows Editor/Quest Link session here.
 
 ## 8. Performance and comfort validation
 
-The current defaults are a starting point: screen-space error 24, 128 MiB Cesium cache setting, four simultaneous tile loads, no tile collision meshes, no ancestor/sibling preloads, 1.5 km camera far clip, 2× MSAA and render scale 0.85. The cache setting does **not** cap total application memory: visible tiles, textures, native allocations, UI, driver resources and the runtime need additional memory.
+The current defaults are a starting point: screen-space error 24, 128 MiB Cesium cache setting per tileset, four simultaneous tile loads, parent tiles preloaded to reduce holes during detail changes, no sibling preloads or tile collision meshes, 1.5 km camera far clip, 2× MSAA and render scale 0.85. The cache setting does **not** cap total application memory: visible tiles, textures, native allocations, UI, driver resources and the runtime need additional memory.
 
 Use MQDH/OVR Metrics and Unity's device profiler for a full ride plus at least ten minutes of repeated rides. Measure CPU/GPU frame time, dropped frames, total memory and thermal behavior. At 72 Hz the frame budget is approximately **13.9 ms**; do not advertise 72 Hz unless sustained on the actual Quest 2. This code does not force the runtime's display refresh rate. Measure the selected runtime rate and meet its budget.
 
@@ -175,13 +184,13 @@ Keep speed low for a first-time rider, let the judge sit, and explain that a but
 | Cesium native library / Reinterop missing | Install the registry package or release tarball, not source code. Confirm Android ARM64 and correct platform binaries. |
 | Package unavailable | Check registry/proxy access. URP 17 packages are supplied with the Unity 6 editor family; reopen in the pinned editor. Do not downgrade Shader Graph to Cesium's older minimum. |
 | Meta Core error on Linux | Use the documented Windows/macOS editor path; see the known Meta 77 issue in Sources. |
-| Missing credential | Check persistentDataPath, JSON field spelling and precedence of an old environment variable. Retry. |
-| HTTP 403 | Map Tiles enabled? Billing active? Correct key API/IP restriction? Same network egress? |
-| HTTP 429 | Quota/rate problem; inspect Google Cloud usage, reduce retries/concurrency. |
+| Missing credential | Check `cesiumIonAccessToken` in `cycling-secrets.json`, persistentDataPath, and whether `CALGARY_CESIUM_ION_TOKEN` overrides the file. Retry. |
+| HTTP 401/403 | Check the Cesium ion token, its asset permissions, and the selected terrain/imagery asset IDs. |
+| HTTP 429 | Check Cesium ion account limits and reduce repeated retries/concurrency. |
 | Loading stuck / blank view | Network, timeout, coverage, altitude, graphics materials and far clip. A root tile response alone is not sufficient. |
 | Route appears buried or floating | Ellipsoid-vs-sea-level height mismatch or estimated route. Correct settings using independent height/alignment data; do not use streamed mesh extraction. |
 | Pink procedural bicycle | URP assigned in Graphics and every Quality level? Unlit shader included in build? Re-run generator and inspect shader settings. |
-| Pink/black Google tiles | Confirm Cesium URP material resources, URP/Shader Graph versions and graphics backend; isolate with a desktop frame capture. |
+| Pink/black streamed tiles | Confirm Cesium URP material resources, URP/Shader Graph versions and graphics backend; isolate with a desktop frame capture. |
 | Controller steering missing | Android OpenXR loader, Oculus Touch profile, focus and left/right setting. Input Debugger should show thumbstick on a Touch device. |
 | Keyboard missing | Click Game view; Active Input Handling must be Input System Package (New). |
 | Gaze cannot click | Use right trigger, not grip; controller must be tracked/active. Gaze target must be in the menu plane. Confirm only one EventSystem. |
@@ -208,15 +217,15 @@ Keep speed low for a first-time rider, let the judge sit, and explain that a but
 - [ ] Pause, resume, restart, menu and quit work from mouse and Quest controls.
 - [ ] Destination stops motion; restart resets progress and lateral position.
 - [ ] Physical head tracking is unaffected by menu or pause; recenter is comfortable.
-- [ ] Google Maps logo/live provider credits appear fully in BOTH eyes and the desktop view.
+- [ ] Cesium live provider credits appear fully in BOTH eyes and the desktop view.
 - [ ] Wi-Fi loss and app focus loss stop the ride safely; reconnect/retry behavior is tested.
 - [ ] Full route and repeated rides sustain the selected headset refresh rate without memory/thermal failure.
 - [ ] Final APK is installed and tested after any profiling/build-setting changes.
-- [ ] Venue connection/IP restriction is checked; headset/controllers are charged; USB cable and desktop backup are ready.
+- [ ] Venue connection and Cesium ion access are checked; headset/controllers are charged; USB cable and desktop backup are ready.
 
 ## 11. Architecture and full file contents
 
-See **Docs/FILE_GUIDE.md** for every file's role, Inspector setup and test, and **Docs/COMPLETE_SOURCE.md** for every implementation/configuration file in full. The executable source is under Assets; do not copy the appendix back over it unless intentionally making changes. Generated Unity scenes/assets are created by the included editor command, rather than hand-authored fragile YAML.
+See **Docs/FILE_GUIDE.md** for file roles, Inspector setup and tests. The executable source of truth is under `Assets/Cycling`; `Docs/COMPLETE_SOURCE.md` is a historical appendix and may not match the current scripts. Do not copy its code over the executable files. Generated Unity scenes/assets are created by the included editor command, rather than hand-authored fragile YAML.
 
 ## 12. Sources and version verification
 
@@ -228,7 +237,7 @@ Consulted 24 October 2026. The implementation targets the pinned release source;
 - [Pinned Cesium3DTileset source](https://github.com/CesiumGS/cesium-unity/blob/v1.18.1/Runtime/Cesium3DTileset.cs): ComputeLoadProgress, tile-created event and static load failure callback.
 - [Pinned credit source](https://github.com/CesiumGS/cesium-unity/blob/v1.18.1/Runtime/CesiumCreditSystem.cs) and [UI implementation](https://github.com/CesiumGS/cesium-unity/blob/v1.18.1/Runtime/CesiumCreditSystemUI.cs).
 - [Cesium georeference conventions](https://cesium.com/learn/cesium-unity/ref-doc/classCesiumForUnity_1_1CesiumGeoreference.html).
-- [Google renderer integration](https://developers.google.com/maps/documentation/tile/use-renderer), [Map Tiles setup](https://developers.google.com/maps/documentation/tile/get-api-key), [security guidance](https://developers.google.com/maps/api-security-best-practices), and [usage/attribution policies](https://developers.google.com/maps/documentation/tile/policies).
+- [Cesium ion access tokens](https://cesium.com/learn/ion/ion-access-tokens/), [Cesium ion assets](https://cesium.com/learn/ion/ion-assets/), and [OpenRouteService API keys](https://openrouteservice.org/dev/#/signup).
 - [Unity OpenXR 1.14 Touch controller profile](https://docs.unity3d.com/Packages/com.unity.xr.openxr@1.14/manual/features/oculustouchcontrollerprofile.html) and [input](https://docs.unity3d.com/Packages/com.unity.xr.openxr@1.14/manual/input.html).
 - [Meta software/device setup](https://developers.meta.com/vr/documentation/unity/unity-software-setup/), [deployment](https://developers.meta.com/vr/documentation/unity/unity-deploy-and-test/), and [OpenXR compatibility](https://developers.meta.com/vr/documentation/unity/unity-and-openxr-compatibility/).
 - [Meta Core 77 Linux issue](https://developers.meta.com/vr/feedback/vr/investigations/25168645556071591/).

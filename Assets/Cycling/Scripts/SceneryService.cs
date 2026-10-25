@@ -6,9 +6,15 @@ namespace CalgaryCycling
 {
     public sealed class SceneryService : MonoBehaviour
     {
-        [Serializable] sealed class Secrets { public string cesiumIonAccessToken; public long cesiumIonAssetId = 1; }
+        [Serializable] sealed class Secrets
+        {
+            public string cesiumIonAccessToken;
+            public long cesiumIonAssetId = 1;
+            public long cesiumIonImageryAssetId = 2;
+        }
         public Cesium3DTileset Tiles { get; private set; }
         public Cesium3DTileset Buildings { get; private set; }
+        public CesiumIonRasterOverlay Imagery { get; private set; }
         public bool Ready { get; private set; }
         public bool Failed { get; private set; }
         public string Status { get; private set; } = "Not initialized";
@@ -27,16 +33,18 @@ namespace CalgaryCycling
             Tiles.maximumScreenSpaceError=config.screenSpaceError;
             Tiles.maximumCachedBytes=(long)config.cacheMiB*1024*1024;
             Tiles.maximumSimultaneousTileLoads=(uint)config.simultaneousLoads;
-            Tiles.preloadAncestors=false;Tiles.preloadSiblings=false;
+            Tiles.preloadAncestors=true;Tiles.preloadSiblings=false;
             Tiles.createPhysicsMeshes=false;Tiles.showCreditsOnScreen=true;
             Tiles.OnTileGameObjectCreated+=TileCreated;
+            Imagery=go.AddComponent<CesiumIonRasterOverlay>();
+            Imagery.showCreditsOnScreen=true;
             var buildingGO=new GameObject("Cesium ion OSM Buildings");buildingGO.SetActive(false);buildingGO.transform.SetParent(georeference,false);
             Buildings=buildingGO.AddComponent<Cesium3DTileset>();
             Buildings.tilesetSource=CesiumDataSource.FromCesiumIon;
             Buildings.maximumScreenSpaceError=config.screenSpaceError;
             Buildings.maximumCachedBytes=(long)config.cacheMiB*1024*1024;
             Buildings.maximumSimultaneousTileLoads=(uint)config.simultaneousLoads;
-            Buildings.preloadAncestors=false;Buildings.preloadSiblings=false;
+            Buildings.preloadAncestors=true;Buildings.preloadSiblings=false;
             Buildings.createPhysicsMeshes=false;Buildings.showCreditsOnScreen=true;
             Buildings.OnTileGameObjectCreated+=TileCreated;
             Cesium3DTileset.OnCesium3DTilesetLoadFailure+=LoadFailed;
@@ -47,7 +55,7 @@ namespace CalgaryCycling
         {
             if(details.tileset!=Tiles && details.tileset!=Buildings)return;
             // Never display the SDK message: it may contain the credential-bearing URL.
-            Fail("Tiles request failed (HTTP "+details.httpStatusCode+"). Check key, billing, quota and connection, then Retry.");
+            Fail("Cesium ion request failed (HTTP "+details.httpStatusCode+"). Check token access to terrain, imagery and buildings, account limits and connection, then Retry.");
         }
         public void Retry()
         {
@@ -56,6 +64,7 @@ namespace CalgaryCycling
             Tiles.gameObject.SetActive(false);
             string token=Environment.GetEnvironmentVariable("CALGARY_CESIUM_ION_TOKEN");
             long assetId=1;
+            long imageryAssetId=2;
             try
             {
                 if(string.IsNullOrWhiteSpace(token))
@@ -66,6 +75,7 @@ namespace CalgaryCycling
                         var secrets=JsonUtility.FromJson<Secrets>(File.ReadAllText(path));
                         token=secrets?.cesiumIonAccessToken;
                         assetId=secrets == null || secrets.cesiumIonAssetId <= 0 ? 1 : secrets.cesiumIonAssetId;
+                        imageryAssetId=secrets == null || secrets.cesiumIonImageryAssetId < 0 ? 2 : secrets.cesiumIonImageryAssetId;
                     }
                 }
             }
@@ -73,6 +83,8 @@ namespace CalgaryCycling
             if(string.IsNullOrWhiteSpace(token)) { Fail("Missing Cesium ion token. Configure cycling-secrets.json, then Retry.");return; }
             Tiles.ionAccessToken=token.Trim();
             Tiles.ionAssetID=assetId;
+            Imagery.ionAccessToken=token.Trim();
+            Imagery.ionAssetID=imageryAssetId;
             Buildings.ionAccessToken=token.Trim();
             Buildings.ionAssetID=96188; // Cesium ion OSM Buildings asset.
             Status="Connecting to Cesium ion...";

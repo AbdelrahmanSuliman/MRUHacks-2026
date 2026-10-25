@@ -15,6 +15,7 @@ namespace CalgaryCycling
         public SceneryService Scenery { get; private set; }
         public RoutePlannerService Planner { get; private set; }
         Transform georeference;
+        GameObject demoEnvironment;
         Transform frontWheel, rearWheel, handlebar;
         public RideState State { get; private set; } = RideState.Menu;
         public string Message { get; private set; } = "Welcome. Scenery must load before starting.";
@@ -34,7 +35,14 @@ namespace CalgaryCycling
                 var bike=new GameObject("Bicycle");bike.transform.SetParent(geoGO.transform,false);
                 Motor=bike.AddComponent<BicycleMotor>();Motor.Initialize(route,Settings);
                 BuildBike(bike.transform);
-                if(Settings.showDemoDeck){BuildDeck(geoGO.transform,route);BuildDemoVegetation(geoGO.transform,route);BuildDemoBuildings(geoGO.transform,route);}
+                if(Settings.showDemoDeck)
+                {
+                    demoEnvironment=new GameObject("Authored Demo Environment");
+                    demoEnvironment.transform.SetParent(geoGO.transform,false);
+                    BuildDeck(demoEnvironment.transform,route);
+                    BuildDemoVegetation(demoEnvironment.transform,route);
+                    BuildDemoBuildings(demoEnvironment.transform,route);
+                }
                 var rigGO=new GameObject("XR Origin");rigGO.transform.SetParent(bike.transform,false);
                 Rig=rigGO.AddComponent<RiderCamera>();Rig.Initialize(Settings.eyeHeight);
                 Input=new RideInput(Settings.useRightStick);
@@ -107,8 +115,9 @@ namespace CalgaryCycling
             }
             try
             {
-                var route=new RoutePath(points);Motor.Initialize(route,Settings);State=RideState.Menu;
-                Message="Route loaded. Confirm scenery is ready, then start your ride.";
+                var route=new RoutePath(points,false);Motor.Initialize(route,Settings);State=RideState.Menu;
+                if(demoEnvironment!=null)demoEnvironment.SetActive(false);
+                Message=$"Cycling route loaded: {route.Length/1000f:F1} km. Start when scenery is ready.";
             }
             catch(Exception ex){Debug.LogError("[RideApp] Route conversion failed: "+ex.Message);Message="Route was too long or invalid.";}
         }

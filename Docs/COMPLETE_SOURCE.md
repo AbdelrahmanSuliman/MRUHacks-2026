@@ -1,6 +1,8 @@
 # Complete implementation source
 
-Each path is relative to the Unity project root. See FILE_GUIDE.md for Inspector wiring and individual tests. These are the complete files, not pseudocode.
+> Historical appendix: this listing is not guaranteed to match the current implementation. Use the files under `Assets/Cycling` as the executable source of truth. In particular, scenery credentials and tileset configuration have changed since this snapshot.
+
+Each path is relative to the Unity project root. See FILE_GUIDE.md for Inspector wiring and individual tests.
 
 ## Packages/manifest.json
 

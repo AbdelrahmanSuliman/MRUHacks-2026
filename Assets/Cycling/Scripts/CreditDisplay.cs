@@ -43,7 +43,7 @@ namespace CalgaryCycling
             var lr=(RectTransform)label.transform;lr.sizeDelta=new Vector2(1560,50);lr.anchoredPosition=new Vector2(0,145);
             var text=label.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize=23;text.alignment=TextAnchor.MiddleCenter;text.color=Color.white;
-            text.text="Scenery: Google Maps  |  Bicycle and demo route: Calgary Cycling Simulator";
+            text.text="Scenery: Cesium ion terrain, aerial imagery and OSM Buildings  |  Bicycle and demo route: Calgary Cycling Simulator";
         }
         void OnDestroy()
         {
