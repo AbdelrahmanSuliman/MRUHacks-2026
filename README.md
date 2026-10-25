@@ -27,7 +27,7 @@ The documented assembly path is Windows or macOS. Meta Core 77 has a reported Li
 ## 2. First project setup
 
 1. Install Unity Hub, sign in, and install **6000.0.66f2** from Unity's release archive if it is not in Hub's normal list. For standalone Quest APKs, include **Android Build Support**, **Android SDK & NDK Tools**, and **OpenJDK**. For a Windows desktop player, include **Windows Build Support (IL2CPP)**. Editor Play mode does not require either player target's build modules. Activate a Unity license suitable for your use.
-2. Extract this archive to a writable folder. In Unity Hub choose **Add > Add project from disk** and choose the `CalgaryCycling` folder containing `Assets`, `Packages` and `ProjectSettings`.
+2. Extract this archive to a writable folder. In Unity Hub choose **Add > Add project from disk** and choose the project folder containing `Assets`, `Packages` and `ProjectSettings` (for this archive: `MRUHacks-2026-1`).
 3. Open it with the pinned editor. Unity generates normal missing settings and `.meta` files. Allow package downloads and imports to finish. The first import can take several minutes.
 4. If prompted to enable the new Input System, accept and restart. Otherwise choose **Edit > Project Settings > Player > Other Settings > Active Input Handling > Input System Package (New)** and restart. Do not choose the old input manager.
 5. The manifest installs Cesium from `https://unity.pkg.cesium.com`, scope `com.cesium.unity`. If your package manager cannot reach that registry, download the **release `.tgz`**, not the GitHub source ZIP, from [Cesium 1.18.1](https://github.com/CesiumGS/cesium-unity/releases/tag/v1.18.1), then use Package Manager > + > Add package from tarball. Update the manifest to that local tarball reference. Source ZIPs do not contain the built native libraries.
@@ -40,6 +40,15 @@ The documented assembly path is Windows or macOS. Meta Core 77 has a reported Li
 12. Configure Cesium ion access below, then press Play. Wait for the loading message to finish and click **Start Ride**.
 
 No downloaded art, paid bicycle model, prefab or hand-wired UI is required. The source creates a basic bicycle representation, deck, menu and camera. The scenery is streamed from Cesium ion; it is separate from the authored bicycle and route.
+
+### Editor quick start
+
+For a keyboard-only test, leave desktop XR disabled, open
+`Assets/Cycling/Scenes/Calgary.unity`, click the **Game** view, and press **Play**.
+Wait for scenery loading to finish, then click **Start Ride**. Use **A/D** or the
+left/right arrow keys to steer and **Space** to pause or resume. The Editor test
+requires the project to compile and the Cesium credentials to be configured, but
+does not require an Android build or a headset.
 
 ## 3. Cesium ion configuration and credentials
 
@@ -153,6 +162,36 @@ adb shell monkey -p ca.calgarycycling.simulator -c android.intent.category.LAUNC
 ```
 
 You can also install the APK with MQDH's device/app installation controls and launch it from the device's Unknown Sources app list. Do not uninstall an existing build casually: uninstall removes its app data, including the secrets file. A signature mismatch requires either the original signing key or an intentional uninstall/reprovision.
+
+### APK creation and VR deployment pipeline
+
+The APK is the Android application package produced by Unity. The normal flow is:
+
+1. Unity imports and compiles the project, then builds the enabled Unity scene for
+   Android using the Android SDK, NDK and OpenJDK installed through Unity Hub.
+2. Unity's **Build** or **Build And Run** command produces an `.apk`, such as
+   `Builds/CalgaryCycling.apk`. **Build And Run** also installs that APK on the
+   selected Android device.
+3. For a physical Quest, the APK is transferred and installed with ADB, MQDH, or
+   Unity's **Build And Run** option. The Quest's Android/OpenXR runtime then
+   launches the application and renders the VR experience.
+
+BlueStacks is an Android emulator, not an APK compiler. It can install an APK
+created by Unity for a desktop smoke test, but it does not provide the physical
+Quest's headset tracking, controller input, OpenXR runtime, or standalone VR
+performance. Therefore:
+
+- Use **BlueStacks** to check that the Android package installs and starts when a
+  compatible emulator configuration is available.
+- Use a **Quest headset** for actual VR, OpenXR, controller, comfort, performance,
+  and Cesium streaming validation.
+- Installing an APK in BlueStacks does not automatically send it to a Quest or
+  any other VR system. Build the APK with Unity, then install that same APK
+  separately on the target headset.
+
+The existing `1.apk` and `build1.apk` are already-built Android packages. They
+can be installed for testing, but changing Unity scenes, scripts, packages, or
+build settings requires rebuilding the APK from the Unity project.
 
 ### Windows laptop with Quest Link (PCVR)
 
